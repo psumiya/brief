@@ -1,0 +1,1084 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI Intelligence Brief</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;0,6..72,800;1,6..72,400;1,6..72,500&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink:#0d0d0d;
+    --ink-2:#1a1a1a;
+    --ink-3:#2a2a2a;
+    --paper:#f5f1ea;
+    --paper-2:#ece6db;
+    --paper-3:#e3dccd;
+    --text:#1a1814;
+    --text-mute:#6b665c;
+    --text-dim:#8a8478;
+    --rule:#cdc4b1;
+    --rule-strong:#2a2a2a;
+
+    /* Accent: classic newsprint rust */
+    --accent: oklch(0.55 0.12 40);
+    --accent-soft: oklch(0.55 0.12 40 / 0.12);
+    --accent-ink: oklch(0.40 0.10 40);
+
+    /* Theme accent hues */
+    --t-hardware: oklch(0.55 0.10 250);
+    --t-models:   oklch(0.55 0.10 150);
+    --t-agents:   oklch(0.55 0.10 40);
+    --t-oss:      oklch(0.55 0.10 310);
+    --t-community:oklch(0.55 0.10 90);
+
+    /* Stack layer hues */
+    --sl-infra:     oklch(0.52 0.12 235);
+    --sl-data:      oklch(0.55 0.13 65);
+    --sl-models:    oklch(0.50 0.11 155);
+    --sl-platforms: oklch(0.52 0.11 295);
+    --sl-apps:      oklch(0.52 0.12 15);
+
+    --serif:'Newsreader', Georgia, serif;
+    --sans:'IBM Plex Sans', system-ui, sans-serif;
+    --mono:'IBM Plex Mono', ui-monospace, monospace;
+  }
+
+  *,*::before,*::after{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--paper);
+    color:var(--text);
+    font-family:var(--sans);
+    font-size:16px;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  .mono{ font-family:var(--mono); font-size:11px; letter-spacing:0.08em; text-transform:uppercase; }
+
+  /* ---------- Paper container ---------- */
+  .paper{
+    max-width:1240px;
+    margin:0 auto;
+    padding:0 32px 80px;
+  }
+  @media (max-width: 720px){
+    .paper{ padding:0 18px 60px; }
+  }
+  @media (max-width: 720px){
+    .brand-name{ font-size:24px; }
+    .brand-mark{ font-size:16px; }
+    .masthead-row{ padding-bottom:10px; gap:8px; }
+    .masthead-right{ display:none; }
+    .brand-sub{ font-size:10px; }
+    .dateline-day{ font-size:14px; }
+    .dateline{ flex-wrap:wrap; width:100%; row-gap:10px; }
+    .date-dd{ margin-left:auto; }
+    .masthead-stats{ font-size:10px; gap:6px; }
+    .section{ padding:32px 0 8px; }
+    .section-title{ font-size:24px; }
+    .section-sub{ font-size:14px; }
+    .deep-headline{ font-size:22px; }
+    .deep-meta{ flex-wrap:wrap; }
+    .deep{ padding:20px 4px 22px; }
+    .pill-label{ white-space:nowrap; }
+    .pill{ font-size:12px; padding:6px 10px; }
+    .filter-label{ width:100%; }
+    .bullet{ grid-template-columns:32px 1fr; gap:12px; padding:14px 0; }
+    .bullet-text{ font-size:15px; }
+  }
+
+  /* ---------- Masthead ---------- */
+  .masthead{
+    background:var(--ink);
+    color:var(--paper);
+    margin:0 -32px 0;
+    padding:22px 32px 0;
+    border-bottom:1px solid #000;
+  }
+  @media (max-width: 720px){
+    .masthead{ margin:0 -18px 0; padding:18px 18px 0; }
+  }
+  .masthead-row{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    gap:16px;
+    padding-bottom:14px;
+    border-bottom:1px solid rgba(255,255,255,0.12);
+  }
+  .masthead-left{ display:flex; align-items:baseline; gap:18px; flex-wrap:wrap; }
+  .brand{ display:flex; align-items:baseline; gap:12px; }
+  .brand-mark{
+    font-family:var(--serif);
+    font-size:22px;
+    color:var(--paper);
+    transform:translateY(2px);
+  }
+  .brand-name{
+    font-family:var(--serif);
+    font-weight:700;
+    font-size:34px;
+    letter-spacing:-0.015em;
+    line-height:1;
+  }
+  .brand-sub{ color:rgba(255,255,255,0.55); }
+  .masthead-right{ color:rgba(255,255,255,0.55); }
+
+  .masthead-bar{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:16px;
+    padding:14px 0 16px;
+    flex-wrap:wrap;
+  }
+  .dateline{ display:flex; align-items:center; gap:10px; }
+  .dateline-text{ display:flex; align-items:center; gap:10px; padding:0 6px; }
+  .dateline-day{
+    font-family:var(--serif);
+    font-size:17px;
+    font-weight:500;
+    letter-spacing:-0.005em;
+  }
+  .today-chip{
+    background:var(--accent);
+    color:#fff;
+    padding:3px 7px;
+    border-radius:2px;
+    font-size:9.5px;
+    letter-spacing:0.12em;
+  }
+
+  .iconbtn{
+    width:32px; height:32px;
+    display:inline-flex; align-items:center; justify-content:center;
+    background:transparent;
+    color:var(--paper);
+    border:1px solid rgba(255,255,255,0.22);
+    cursor:pointer;
+    transition:all .12s ease;
+  }
+  .iconbtn:hover:not(:disabled){
+    background:rgba(255,255,255,0.08);
+    border-color:rgba(255,255,255,0.45);
+  }
+  .iconbtn:disabled{ opacity:0.3; cursor:not-allowed; }
+
+  .masthead-stats{ color:rgba(255,255,255,0.6); display:flex; gap:10px; align-items:center; }
+  .masthead-stats b{ color:var(--paper); font-weight:600; }
+  .masthead-stats .sep{ color:rgba(255,255,255,0.3); }
+
+  /* ---------- Date dropdown ---------- */
+  .date-dd{ position:relative; margin-left:6px; }
+  .date-dd-trigger{
+    display:inline-flex; align-items:center; gap:8px;
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.22);
+    color:var(--paper);
+    padding:7px 10px;
+    cursor:pointer;
+    transition:all .12s ease;
+  }
+  .date-dd-trigger:hover{
+    background:rgba(255,255,255,0.1);
+    border-color:rgba(255,255,255,0.45);
+  }
+  .date-dd-menu{
+    position:absolute; top:calc(100% + 6px); left:0;
+    z-index:50;
+    min-width:280px;
+    background:var(--paper);
+    color:var(--text);
+    border:1px solid var(--rule-strong);
+    box-shadow:0 12px 32px rgba(0,0,0,0.18);
+  }
+  .date-dd-head{
+    padding:10px 14px;
+    color:var(--text-mute);
+    background:var(--paper-2);
+    border-bottom:1px solid var(--rule);
+  }
+  .date-dd-item{
+    display:flex; justify-content:space-between; align-items:center; gap:16px;
+    width:100%;
+    background:transparent; border:0;
+    padding:9px 14px;
+    cursor:pointer;
+    text-align:left;
+    border-bottom:1px solid var(--rule);
+    color:var(--text);
+  }
+  .date-dd-item:last-child{ border-bottom:0; }
+  .date-dd-item:hover{ background:var(--paper-2); }
+  .date-dd-item.is-active{ background:var(--ink); color:var(--paper); }
+  .date-dd-item.is-active .date-dd-short{ color:rgba(255,255,255,0.55); }
+  .date-dd-day{ font-family:var(--serif); font-size:15px; }
+  .date-dd-short{ color:var(--text-mute); }
+
+  /* ---------- Filter ---------- */
+  .filter{
+    background:var(--paper-2);
+    margin:0 -32px;
+    padding:14px 32px;
+    border-bottom:1px solid var(--rule);
+    display:flex; align-items:center; gap:18px;
+    flex-wrap:wrap;
+  }
+  @media (max-width: 720px){
+    .filter{ margin:0 -18px; padding:14px 18px; gap:12px; }
+  }
+  .filter-label{ color:var(--text-mute); flex-shrink:0; }
+  .filter-pills{ display:flex; gap:8px; flex-wrap:wrap; }
+  .pill{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:7px 12px;
+    background:transparent;
+    border:1px solid var(--rule-strong);
+    color:var(--text);
+    cursor:pointer;
+    font-family:var(--sans);
+    font-size:13px;
+    font-weight:500;
+    line-height:1;
+    transition:all .12s ease;
+    border-radius:999px;
+  }
+  .pill:hover{ background:var(--paper-3); }
+  .pill.is-active{
+    background:var(--ink);
+    color:var(--paper);
+    border-color:var(--ink);
+  }
+  .pill-count{
+    font-size:10px;
+    color:var(--text-mute);
+    background:var(--paper);
+    padding:2px 6px;
+    border-radius:999px;
+    border:1px solid var(--rule);
+  }
+  .pill.is-active .pill-count{
+    background:rgba(255,255,255,0.12);
+    color:rgba(255,255,255,0.7);
+    border-color:transparent;
+  }
+
+  /* ---------- Section ---------- */
+  .section{ padding:48px 0 12px; }
+  .section-head{ display:flex; align-items:baseline; gap:18px; margin-bottom:22px; padding-bottom:14px; border-bottom:2px solid var(--rule-strong); flex-wrap:wrap; }
+  .section-title{
+    font-family:var(--serif);
+    font-weight:700;
+    font-size:32px;
+    letter-spacing:-0.02em;
+    margin:0;
+    display:flex; align-items:baseline; gap:14px;
+  }
+  .section-kicker{ color:var(--text-mute); font-size:11px; letter-spacing:0.16em; font-weight:500; }
+  .section-sub{
+    margin:0;
+    font-family:var(--serif);
+    font-style:italic;
+    color:var(--text-mute);
+    font-size:16px;
+  }
+
+  .empty{
+    padding:40px;
+    text-align:center;
+    color:var(--text-mute);
+    border:1px dashed var(--rule);
+  }
+
+  /* ---------- Deep takes ---------- */
+  .deep-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:0;
+    border-top:1px solid var(--rule);
+    border-bottom:1px solid var(--rule);
+  }
+  .deep-grid > .deep + .deep{
+    border-left:1px solid var(--rule);
+  }
+  @media (max-width: 980px){
+    .deep-grid{ grid-template-columns:1fr; }
+    .deep-grid > .deep + .deep{ border-left:0; border-top:1px solid var(--rule); }
+  }
+  .deep{
+    padding:24px 22px 26px;
+    display:flex; flex-direction:column;
+    background:var(--paper);
+  }
+  .deep-meta{
+    color:var(--text-mute);
+    display:flex; align-items:center; gap:8px;
+    margin-bottom:14px;
+  }
+  .deep-num{ color:var(--ink); font-weight:600; }
+  .deep-dot{ color:var(--rule); }
+  .deep-kicker{ color:var(--accent-ink); }
+  .deep-headline{
+    font-family:var(--serif);
+    font-weight:700;
+    font-size:26px;
+    line-height:1.12;
+    letter-spacing:-0.018em;
+    margin:0 0 12px;
+    text-wrap:balance;
+  }
+  .deep-deck{
+    font-family:var(--serif);
+    font-style:italic;
+    color:var(--text-mute);
+    font-size:15px;
+    line-height:1.45;
+    margin:0 0 18px;
+    padding-bottom:14px;
+    border-bottom:1px solid var(--rule);
+    text-wrap:pretty;
+  }
+  .deep-body{ flex:1; }
+  .deep-body p{
+    font-family:var(--serif);
+    font-size:15px;
+    line-height:1.55;
+    margin:0 0 12px;
+    color:var(--text);
+    text-wrap:pretty;
+  }
+  .deep-body p.has-dropcap::first-letter{
+    font-family:var(--serif);
+    font-weight:700;
+    font-size:48px;
+    line-height:0.85;
+    float:left;
+    padding:6px 8px 0 0;
+    color:var(--ink);
+  }
+  .deep-foot{
+    margin-top:18px;
+    padding-top:14px;
+    border-top:1px solid var(--rule);
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .deep-tags{ display:flex; gap:6px; flex-wrap:wrap; }
+  .deep-sources{ color:var(--text-mute); line-height:1.5; }
+  .srclabel{ color:var(--text-dim); margin-right:6px; }
+  .src{ color:var(--text); }
+  .src-link{ color:var(--text); text-decoration:none; }
+  .src-link:hover{ color:var(--accent-ink); text-decoration:underline; }
+
+  /* ---------- Theme tag ---------- */
+  .tag{
+    display:inline-flex; align-items:center;
+    font-family:var(--mono);
+    font-size:10px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    padding:3px 7px;
+    border-radius:2px;
+    line-height:1.4;
+    white-space:nowrap;
+  }
+  .tag-sm{ font-size:9.5px; padding:2px 6px; }
+  .tag-theme{ font-weight:500; }
+  .tag-hardware  { background:color-mix(in oklab, var(--t-hardware) 15%, var(--paper)); color:var(--t-hardware); border:1px solid color-mix(in oklab, var(--t-hardware) 35%, transparent); }
+  .tag-models    { background:color-mix(in oklab, var(--t-models) 15%, var(--paper)); color:var(--t-models); border:1px solid color-mix(in oklab, var(--t-models) 35%, transparent); }
+  .tag-agents    { background:color-mix(in oklab, var(--t-agents) 15%, var(--paper)); color:var(--t-agents); border:1px solid color-mix(in oklab, var(--t-agents) 35%, transparent); }
+  .tag-oss       { background:color-mix(in oklab, var(--t-oss) 15%, var(--paper)); color:var(--t-oss); border:1px solid color-mix(in oklab, var(--t-oss) 35%, transparent); }
+  .tag-community { background:color-mix(in oklab, var(--t-community) 15%, var(--paper)); color:var(--t-community); border:1px solid color-mix(in oklab, var(--t-community) 35%, transparent); }
+
+  /* ---------- Stack layer tag ---------- */
+  .tag-sl { border-style: dashed; cursor:default; }
+  .tag-sl-infra     { background:color-mix(in oklab, var(--sl-infra) 12%, var(--paper)); color:var(--sl-infra); border:1px dashed color-mix(in oklab, var(--sl-infra) 40%, transparent); }
+  .tag-sl-data      { background:color-mix(in oklab, var(--sl-data) 12%, var(--paper)); color:var(--sl-data); border:1px dashed color-mix(in oklab, var(--sl-data) 40%, transparent); }
+  .tag-sl-models    { background:color-mix(in oklab, var(--sl-models) 12%, var(--paper)); color:var(--sl-models); border:1px dashed color-mix(in oklab, var(--sl-models) 40%, transparent); }
+  .tag-sl-platforms { background:color-mix(in oklab, var(--sl-platforms) 12%, var(--paper)); color:var(--sl-platforms); border:1px dashed color-mix(in oklab, var(--sl-platforms) 40%, transparent); }
+  .tag-sl-apps      { background:color-mix(in oklab, var(--sl-apps) 12%, var(--paper)); color:var(--sl-apps); border:1px dashed color-mix(in oklab, var(--sl-apps) 40%, transparent); }
+
+  /* ---------- Stack legend ---------- */
+  .stack-legend{ position:relative; margin-left:auto; flex-shrink:0; }
+  .legend-btn{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:5px 10px;
+    background:transparent;
+    border:1px solid var(--rule-strong);
+    color:var(--text-mute);
+    cursor:pointer;
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    transition:all .12s ease;
+    border-radius:2px;
+  }
+  .legend-btn:hover{ background:var(--paper-3); color:var(--text); }
+  .legend-btn.is-open{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+  .legend-panel{
+    position:absolute; top:calc(100% + 8px); right:0;
+    z-index:60;
+    width:320px;
+    background:var(--paper);
+    border:1px solid var(--rule-strong);
+    box-shadow:0 8px 24px rgba(0,0,0,0.14);
+  }
+  .legend-head{
+    padding:9px 14px;
+    background:var(--paper-2);
+    border-bottom:1px solid var(--rule);
+    color:var(--text-mute);
+    font-size:10px;
+    letter-spacing:0.12em;
+  }
+  .legend-row{
+    display:flex; align-items:flex-start; gap:10px;
+    padding:9px 14px;
+    border-bottom:1px solid var(--rule);
+  }
+  .legend-row:last-child{ border-bottom:0; }
+  .legend-row .tag{ flex-shrink:0; margin-top:1px; }
+  .legend-desc{ font-size:11px; color:var(--text-mute); line-height:1.45; }
+
+  /* ---------- Bullets ---------- */
+  .bullets{
+    list-style:none;
+    margin:0;
+    padding:0;
+    border-top:1px solid var(--rule-strong);
+  }
+  .bullet{
+    display:grid;
+    grid-template-columns:48px 1fr;
+    gap:18px;
+    padding:16px 4px;
+    border-bottom:1px solid var(--rule);
+    align-items:start;
+  }
+  .bullet:hover{ background:var(--paper-2); }
+  .bullet-num{
+    color:var(--text-dim);
+    font-weight:500;
+    padding-top:3px;
+  }
+  .bullet-main{ display:flex; flex-direction:column; gap:7px; min-width:0; }
+  .bullet-text{
+    font-family:var(--serif);
+    font-size:17px;
+    line-height:1.45;
+    margin:0;
+    color:var(--text);
+    text-wrap:pretty;
+  }
+  .bullet-meta{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .bullet-source{ color:var(--text-mute); }
+  .bullet-source::before{
+    content:'';
+    display:inline-block;
+    width:14px; height:1px;
+    background:var(--text-dim);
+    margin-right:8px;
+    vertical-align:middle;
+  }
+  .bullet-source a{ color:inherit; text-decoration:none; }
+  .bullet-source a:hover{ color:var(--ink); text-decoration:underline; }
+  .bullet-link{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:22px; height:22px;
+    color:var(--text-mute);
+    border:1px solid var(--rule);
+    text-decoration:none;
+    transition:all .12s ease;
+  }
+  .bullet-link:hover{
+    color:var(--ink);
+    border-color:var(--ink);
+    background:var(--paper);
+  }
+
+  /* ---------- Loading / Error ---------- */
+  .state-screen{
+    min-height:60vh;
+    display:flex; align-items:center; justify-content:center;
+    flex-direction:column; gap:16px;
+    color:var(--text-mute);
+  }
+  .state-screen .state-title{
+    font-family:var(--serif);
+    font-size:22px;
+    color:var(--text);
+    margin:0;
+  }
+  .spinner{
+    width:28px; height:28px;
+    border:2px solid var(--rule);
+    border-top-color:var(--ink);
+    border-radius:50%;
+    animation:spin .7s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  /* ---------- Footer ---------- */
+  .footer{ margin-top:60px; }
+  .footer-rule{
+    height:6px;
+    border-top:2px solid var(--ink);
+    border-bottom:1px solid var(--ink);
+    margin-bottom:14px;
+  }
+  .footer-row{
+    display:flex; justify-content:space-between; align-items:center;
+    color:var(--text-mute);
+    gap:16px;
+    flex-wrap:wrap;
+  }
+  .footer-meta{ display:flex; gap:10px; }
+  .footer-meta .sep{ color:var(--text-dim); }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <!--
+    DATA_ROOT: path prefix for JSON data files.
+    Local dev: site/output -> ../output (symlink created at setup). Serve from site/:
+      cd site && python -m http.server 8080
+    Production (S3): JSON files are in the same directory as index.html, DATA_ROOT stays ''.
+  -->
+  <script>window.BRIEF_DATA_ROOT = window.BRIEF_DATA_ROOT ?? 'output';</script>
+
+  <script type="text/babel" data-presets="react">
+const { useState, useMemo, useRef, useEffect } = React;
+
+// ----- Theme config -----
+const THEMES = [
+  { id: 'all',       label: 'All' },
+  { id: 'hardware',  label: 'Hardware & Infrastructure' },
+  { id: 'models',    label: 'Foundation Models & Research' },
+  { id: 'agents',    label: 'Agents & Applications' },
+  { id: 'oss',       label: 'Open Source & Tooling' },
+  { id: 'community', label: 'Community & Discourse' },
+];
+const THEME_LOOKUP  = Object.fromEntries(THEMES.map(t => [t.id, t.label]));
+const THEME_TO_ID   = {
+  'Hardware & Infrastructure':    'hardware',
+  'Foundation Models & Research': 'models',
+  'Agents & Applications':        'agents',
+  'Open Source & Tooling':        'oss',
+  'Community & Discourse':        'community',
+};
+const KICKERS = ['Lead', 'Research', 'Field Notes'];
+
+// ----- Stack layer config -----
+const STACK_LAYERS = [
+  { id: 'infra',     label: 'Infrastructure / Compute', desc: 'GPUs, data centers, cloud providers, and the physical compute substrate.' },
+  { id: 'data',      label: 'Data',                     desc: 'Datasets, curation, labeling, synthetic data, and data pipelines.' },
+  { id: 'models',    label: 'Models / Algorithms',      desc: 'Architectures, training methods, benchmarks, and model weights.' },
+  { id: 'platforms', label: 'Platforms / Tools',        desc: 'Frameworks, SDKs, MLOps tools, fine-tuning platforms, and developer APIs.' },
+  { id: 'apps',      label: 'Applications',             desc: 'End-user products, agents, vertical AI apps, and real-world deployments.' },
+];
+const STACK_LOOKUP = Object.fromEntries(STACK_LAYERS.map(l => [l.id, l]));
+const STACK_TO_ID  = {
+  'Infrastructure / Compute': 'infra',
+  'Data':                     'data',
+  'Models / Algorithms':      'models',
+  'Platforms / Tools':        'platforms',
+  'Applications':             'apps',
+};
+
+// ----- Data helpers -----
+const DATA_ROOT = window.BRIEF_DATA_ROOT;
+
+function dataUrl(filename) {
+  return DATA_ROOT ? `${DATA_ROOT}/${filename}` : filename;
+}
+
+function isoToDate(str) {
+  // Parse YYYY-MM-DD without timezone shift
+  const [y, m, d] = str.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function dateToIso(d) {
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+function transformBrief(json) {
+  const deepTakes = (json.deep_takes || []).map((dt, i) => {
+    const paragraphs = Array.isArray(dt.body)
+      ? dt.body
+      : (dt.body || '').split(/\n\n+/).filter(Boolean);
+    const wordCount = paragraphs.join(' ').split(/\s+/).length;
+    // Normalise sources to [{name, url}] regardless of whether JSON has strings or objects
+    const sources = (dt.sources || []).map(s =>
+      typeof s === 'string' ? { name: s, url: null } : { name: s.name || s, url: s.url || null }
+    );
+    return {
+      id: `dt${i}`,
+      kicker: dt.kicker || KICKERS[i] || 'Analysis',
+      theme: THEME_TO_ID[dt.themes?.[0]] || THEME_TO_ID[dt.theme] || 'models',
+      stackLayer: STACK_TO_ID[dt.stack_layer] || null,
+      headline: dt.headline,
+      deck: dt.deck || '',
+      body: paragraphs,
+      sources,
+      readTime: Math.max(1, Math.ceil(wordCount / 200)),
+    };
+  });
+
+  const bullets = (json.bullets || []).map(b => ({
+    theme: THEME_TO_ID[b.theme] || 'community',
+    stackLayer: STACK_TO_ID[b.stack_layer] || null,
+    source: b.source,
+    text: b.text,
+    url: b.url || null,
+  }));
+
+  return {
+    date: json.date,
+    generated_at: json.generated_at,
+    deepTakes,
+    bullets,
+    meta: json.meta || {},
+  };
+}
+
+// ----- Date formatting -----
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+function fmtLong(d)  { return `${DAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`; }
+function fmtShort(d) {
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}.${mm}.${dd}`;
+}
+
+// ----- Icons -----
+const Arrow = ({ dir = 'left' }) => (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+    {dir === 'left'
+      ? <path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="square" strokeLinejoin="miter" fill="none"/>
+      : <path d="M5 2l5 5-5 5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="square" strokeLinejoin="miter" fill="none"/>}
+  </svg>
+);
+const Caret = () => (
+  <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+    <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="square" strokeLinejoin="miter" fill="none"/>
+  </svg>
+);
+const LinkIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+    <path d="M5 7l2-2M4.5 3h4.5v4.5M8.5 3.5L3.5 8.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="square" fill="none"/>
+  </svg>
+);
+
+// ----- Date dropdown -----
+function DateDropdown({ currentIso, availableDates }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function onDoc(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, []);
+
+  function navigate(iso) {
+    window.location.href = `?date=${iso}`;
+  }
+
+  const displayDate = currentIso ? isoToDate(currentIso) : new Date();
+
+  return (
+    <div className="date-dd" ref={ref}>
+      <button className="date-dd-trigger" onClick={() => setOpen(o => !o)}>
+        <span className="mono">{fmtShort(displayDate)}</span>
+        <Caret />
+      </button>
+      {open && availableDates.length > 0 && (
+        <div className="date-dd-menu">
+          <div className="date-dd-head mono">Recent editions</div>
+          {availableDates.map(iso => {
+            const d = isoToDate(iso);
+            const active = iso === currentIso;
+            return (
+              <button
+                key={iso}
+                className={`date-dd-item ${active ? 'is-active' : ''}`}
+                onClick={() => { navigate(iso); setOpen(false); }}
+              >
+                <span className="date-dd-day">{fmtLong(d)}</span>
+                <span className="date-dd-short mono">{fmtShort(d)}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ----- Theme pill -----
+function Pill({ id, label, active, onClick, count }) {
+  return (
+    <button className={`pill ${active ? 'is-active' : ''} pill-${id}`} onClick={onClick}>
+      <span className="pill-label">{label}</span>
+      {count != null && <span className="pill-count mono">{count}</span>}
+    </button>
+  );
+}
+
+// ----- Stack layer tag -----
+function StackTag({ id, sm }) {
+  const layer = STACK_LOOKUP[id];
+  if (!layer) return null;
+  return (
+    <span
+      className={`tag tag-sl tag-sl-${id}${sm ? ' tag-sm' : ''}`}
+      title={`Stack layer: ${layer.label} — ${layer.desc}`}
+    >
+      {layer.label}
+    </span>
+  );
+}
+
+// ----- Stack legend panel -----
+function StackLegend() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handler(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <div className="stack-legend" ref={ref}>
+      <button
+        className={`legend-btn mono${open ? ' is-open' : ''}`}
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        aria-label="AI stack layer guide"
+      >
+        Stack layers {open ? '▲' : '▼'}
+      </button>
+      {open && (
+        <div className="legend-panel" role="tooltip">
+          <div className="legend-head">AI Stack — 5 layers</div>
+          {STACK_LAYERS.map(l => (
+            <div key={l.id} className="legend-row">
+              <span className={`tag tag-sl tag-sl-${l.id}`}>{l.label}</span>
+              <span className="legend-desc">{l.desc}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ----- Deep Take card -----
+function DeepTake({ item, index }) {
+  return (
+    <article className="deep" data-theme={item.theme}>
+      <header className="deep-head">
+        <div className="deep-meta mono">
+          <span className="deep-num">No. {String(index + 1).padStart(2, '0')}</span>
+          <span className="deep-dot">·</span>
+          <span className="deep-kicker">{item.kicker}</span>
+          <span className="deep-dot">·</span>
+          <span className="deep-read">{item.readTime} min read</span>
+        </div>
+        <h2 className="deep-headline">{item.headline}</h2>
+        {item.deck && <p className="deep-deck">{item.deck}</p>}
+      </header>
+      <div className="deep-body">
+        {item.body.map((p, i) => (
+          <p key={i} className={i === 0 ? 'has-dropcap' : ''}>{p}</p>
+        ))}
+      </div>
+      <footer className="deep-foot">
+        <div className="deep-tags">
+          <span className={`tag tag-theme tag-${item.theme}`}>{THEME_LOOKUP[item.theme]}</span>
+          <StackTag id={item.stackLayer} />
+        </div>
+        {item.sources.length > 0 && (
+          <div className="deep-sources mono">
+            <span className="srclabel">Sources</span>
+            {item.sources.map((s, i) => (
+              <span key={i} className="src">
+                {s.url
+                  ? <a className="src-link" href={s.url} target="_blank" rel="noopener noreferrer">{s.name}</a>
+                  : s.name}
+                {i < item.sources.length - 1 ? ' / ' : ''}
+              </span>
+            ))}
+          </div>
+        )}
+      </footer>
+    </article>
+  );
+}
+
+// ----- Bullet item -----
+function Bullet({ item, index }) {
+  return (
+    <li className="bullet" data-theme={item.theme}>
+      <span className="bullet-num mono">{String(index + 1).padStart(2, '0')}</span>
+      <div className="bullet-main">
+        <p className="bullet-text">{item.text}</p>
+        <div className="bullet-meta">
+          <span className="bullet-source mono">
+            {item.url
+              ? <a href={item.url} target="_blank" rel="noopener noreferrer">{item.source}</a>
+              : item.source}
+          </span>
+          <span className={`tag tag-theme tag-sm tag-${item.theme}`}>{THEME_LOOKUP[item.theme]}</span>
+          <StackTag id={item.stackLayer} sm />
+          {item.url && (
+            <a className="bullet-link" href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Read source">
+              <LinkIcon />
+            </a>
+          )}
+        </div>
+      </div>
+    </li>
+  );
+}
+
+// ----- Main App -----
+function App() {
+  const [brief, setBrief]               = useState(null);
+  const [loading, setLoading]           = useState(true);
+  const [error, setError]               = useState(null);
+  const [availableDates, setAvailDates] = useState([]);
+  const [theme, setTheme]               = useState('all');
+
+  // Parse ?date= from URL
+  const urlDate = useMemo(() => new URLSearchParams(location.search).get('date'), []);
+
+  useEffect(() => {
+    // Load index.json for date navigation (non-fatal if missing)
+    fetch(dataUrl('index.json'))
+      .then(r => r.ok ? r.json() : { dates: [] })
+      .then(idx => setAvailDates(idx.dates || []))
+      .catch(() => {});
+
+    // Load the brief
+    const url = urlDate
+      ? dataUrl(`brief-${urlDate}.json`)
+      : dataUrl('latest.json');
+
+    fetch(url)
+      .then(r => {
+        if (!r.ok) throw new Error(`Brief not found (${r.status})`);
+        return r.json();
+      })
+      .then(json => {
+        setBrief(transformBrief(json));
+        setLoading(false);
+        // Update page title
+        if (json.date) document.title = `AI Intelligence Brief — ${json.date}`;
+      })
+      .catch(err => {
+        setError(err.message);
+        setLoading(false);
+      });
+  }, []);
+
+  // Date navigation (availableDates is newest-first)
+  const currentIso   = brief?.date || urlDate || null;
+  const currentIdx   = availableDates.indexOf(currentIso);
+  const canGoPrev    = currentIdx < availableDates.length - 1;
+  const canGoNext    = currentIdx > 0 && availableDates.length > 0;
+  const isLatest     = !urlDate || (availableDates.length > 0 && currentIso === availableDates[0]);
+
+  function shiftDay(delta) {
+    // delta=-1 → older (higher index), delta=+1 → newer (lower index)
+    const newIdx = currentIdx - delta;
+    if (newIdx >= 0 && newIdx < availableDates.length) {
+      window.location.href = `?date=${availableDates[newIdx]}`;
+    }
+  }
+
+  // Filtered data
+  const deepTakes = brief?.deepTakes || [];
+  const bullets   = brief?.bullets   || [];
+
+  const filteredDeep    = useMemo(() => theme === 'all' ? deepTakes : deepTakes.filter(d => d.theme === theme), [theme, deepTakes]);
+  const filteredBullets = useMemo(() => theme === 'all' ? bullets   : bullets.filter(b => b.theme === theme),   [theme, bullets]);
+
+  const counts = useMemo(() => {
+    const c = { all: deepTakes.length + bullets.length };
+    for (const t of THEMES) if (t.id !== 'all') {
+      c[t.id] = deepTakes.filter(d => d.theme === t.id).length + bullets.filter(b => b.theme === t.id).length;
+    }
+    return c;
+  }, [deepTakes, bullets]);
+
+  // ----- Render: loading -----
+  if (loading) return (
+    <div className="paper">
+      <div className="state-screen">
+        <div className="spinner" />
+        <p className="mono">Loading brief…</p>
+      </div>
+    </div>
+  );
+
+  // ----- Render: error -----
+  if (error) return (
+    <div className="paper">
+      <div className="state-screen">
+        <p className="state-title">Brief unavailable</p>
+        <p className="mono">{error}</p>
+        {urlDate && <a href="?" className="mono" style={{color:'var(--accent-ink)'}}>← Latest edition</a>}
+      </div>
+    </div>
+  );
+
+  const displayDate = currentIso ? isoToDate(currentIso) : new Date();
+  const sourcesCount = brief?.meta?.sources_fetched?.length ?? 0;
+  const generatedTime = brief?.generated_at
+    ? new Date(brief.generated_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' })
+    : null;
+
+  return (
+    <div className="paper">
+      {/* HEADER */}
+      <header className="masthead">
+        <div className="masthead-row">
+          <div className="masthead-left">
+            <div className="brand">
+              <span className="brand-mark" aria-hidden="true">◆</span>
+              <span className="brand-name">AI Intelligence Brief</span>
+            </div>
+            <span className="brand-sub mono">Daily · AI-synthesised</span>
+          </div>
+          <div className="masthead-right mono">
+            {currentIso && <span>{currentIso.replace(/-/g, '.')} edition</span>}
+          </div>
+        </div>
+
+        <div className="masthead-bar">
+          <div className="dateline">
+            <button
+              className="iconbtn"
+              onClick={() => shiftDay(-1)}
+              disabled={!canGoPrev}
+              aria-label="Previous day"
+            >
+              <Arrow dir="left" />
+            </button>
+            <div className="dateline-text">
+              <span className="dateline-day">{fmtLong(displayDate)}</span>
+              {isLatest && <span className="today-chip mono">Latest</span>}
+            </div>
+            <button
+              className="iconbtn"
+              onClick={() => shiftDay(1)}
+              disabled={!canGoNext}
+              aria-label="Next day"
+            >
+              <Arrow dir="right" />
+            </button>
+            <DateDropdown currentIso={currentIso} availableDates={availableDates} />
+          </div>
+          <div className="masthead-stats mono">
+            <span><b>{deepTakes.length}</b> deep takes</span>
+            <span className="sep">·</span>
+            <span><b>{bullets.length}</b> bullets</span>
+            {sourcesCount > 0 && <>
+              <span className="sep">·</span>
+              <span><b>{sourcesCount}</b> sources</span>
+            </>}
+          </div>
+        </div>
+      </header>
+
+      {/* THEME FILTER */}
+      <nav className="filter" aria-label="Filter by theme">
+        <div className="filter-label mono">Filter by theme</div>
+        <div className="filter-pills">
+          {THEMES.map(t => (
+            <Pill
+              key={t.id}
+              id={t.id}
+              label={t.label}
+              active={theme === t.id}
+              onClick={() => setTheme(t.id)}
+              count={counts[t.id]}
+            />
+          ))}
+        </div>
+        <StackLegend />
+      </nav>
+
+      {/* DEEP TAKES */}
+      <section className="section">
+        <div className="section-head">
+          <h2 className="section-title">
+            <span className="section-kicker mono">§ 01</span>
+            Deep takes
+          </h2>
+          <p className="section-sub">Three stories worth your full attention this morning.</p>
+        </div>
+        {filteredDeep.length > 0 ? (
+          <div className="deep-grid">
+            {filteredDeep.map((item, i) => (
+              <DeepTake key={item.id} item={item} index={deepTakes.indexOf(item)} />
+            ))}
+          </div>
+        ) : (
+          <div className="empty mono">No deep takes in this theme today.</div>
+        )}
+      </section>
+
+      {/* BULLETS */}
+      <section className="section">
+        <div className="section-head">
+          <h2 className="section-title">
+            <span className="section-kicker mono">§ 02</span>
+            The wire
+          </h2>
+          <p className="section-sub">Smaller items, scanned and stitched from the day's feeds.</p>
+        </div>
+        {filteredBullets.length > 0 ? (
+          <ol className="bullets">
+            {filteredBullets.map((item, i) => (
+              <Bullet key={i} item={item} index={bullets.indexOf(item)} />
+            ))}
+          </ol>
+        ) : (
+          <div className="empty mono">No wire items in this theme today.</div>
+        )}
+      </section>
+
+      {/* FOOTER */}
+      <footer className="footer">
+        <div className="footer-rule"></div>
+        <div className="footer-row mono">
+          <div>© AI Intelligence Brief · Auto-compiled from public sources by AI</div>
+          <div className="footer-meta">
+            {generatedTime && <><span>Compiled {generatedTime}</span><span className="sep">·</span></>}
+            <span>Next edition: tomorrow</span>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

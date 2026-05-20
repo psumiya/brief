@@ -1,0 +1,13 @@
+.env
+output/
+site/output/
+__pycache__/
+*.pyc
+*.pyo
+*.db
+*.log
+.DS_Store
+.venv/
+venv/
+.pytest_cache/
+.claude/settings.local.json
