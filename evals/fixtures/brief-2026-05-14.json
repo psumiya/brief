@@ -17,7 +17,8 @@
         "Foundation Models & Research",
         "Agents & Applications",
         "Community & Discourse"
-      ]
+      ],
+      "stack_layer": "Models / Algorithms"
     },
     {
       "headline": "From Coder to Architect: AI Reshapes the Software Landscape",
@@ -37,7 +38,8 @@
         "Agents & Applications",
         "Open Source & Tooling",
         "Community & Discourse"
-      ]
+      ],
+      "stack_layer": "Applications"
     },
     {
       "headline": "Unlocking Local AI: A New Era of Hardware and Architectural Innovation",
@@ -56,7 +58,8 @@
         "Hardware & Infrastructure",
         "Foundation Models & Research",
         "Open Source & Tooling"
-      ]
+      ],
+      "stack_layer": "Infrastructure / Compute"
     }
   ],
   "bullets": [
@@ -64,79 +67,92 @@
       "text": "Governments are urged to adopt \"Radical Optionality\" in AI regulation, investing now in tools and legal frameworks needed for potential future crises, preserving democratic control over transformative AI systems.",
       "source": "Import AI",
       "theme": "Community & Discourse",
-      "url": "https://importai.substack.com/p/import-ai-456-rsi-and-economic-growth"
+      "url": "https://importai.substack.com/p/import-ai-456-rsi-and-economic-growth",
+      "stack_layer": "Platforms / Tools"
     },
     {
       "text": "A 60%+ chance exists for no-human-involved AI R&D – an AI system capable of autonomously building its successor – by the end of 2028, signaling a profound societal shift.",
       "source": "Import AI",
       "theme": "Foundation Models & Research",
-      "url": "https://importai.substack.com/p/import-ai-455-automating-ai-research"
+      "url": "https://importai.substack.com/p/import-ai-455-automating-ai-research",
+      "stack_layer": "Models / Algorithms"
     },
     {
       "text": "Huawei's HiFloat4, a 4-bit precision format, outperforms Western-developed MXFP4 in Ascend chip benchmarks, indicating advanced hardware optimization possibly driven by export controls.",
       "source": "Import AI",
       "theme": "Hardware & Infrastructure",
-      "url": "https://importai.substack.com/p/import-ai-454-automating-alignment"
+      "url": "https://importai.substack.com/p/import-ai-454-automating-alignment",
+      "stack_layer": "Infrastructure / Compute"
     },
     {
       "text": "MirrorCode, a benchmark by METR and Epoch, demonstrates that AI models can reverse-engineer and reimplement complex software containing thousands of lines of code, indicating advanced long-horizon capabilities.",
       "source": "Import AI",
       "theme": "Agents & Applications",
-      "url": "https://importai.substack.com/p/import-ai-453-breaking-ai-agents"
+      "url": "https://importai.substack.com/p/import-ai-453-breaking-ai-agents",
+      "stack_layer": "Applications"
     },
     {
       "text": "Lyptus Research reveals a \"scaling war\" in cyberattacks, with frontier models like GPT-5.3 Codex and Opus 4.6 exhibiting a doubling time of 5.7 months for advanced cyberoffense tasks.",
       "source": "Import AI",
       "theme": "Agents & Applications",
-      "url": "https://importai.substack.com/p/import-ai-452-scaling-laws-for-cyberwar"
+      "url": "https://importai.substack.com/p/import-ai-452-scaling-laws-for-cyberwar",
+      "stack_layer": "Applications"
     },
     {
       "text": "NVIDIA's DGX Spark enables local execution of large open-weight models like GPT-OSS 120B, offering 128 GiB of unified RAM and a GB10 GPU for privacy-focused edge AI development.",
       "source": "Yannic Kilcher",
       "theme": "Hardware & Infrastructure",
-      "url": "https://www.youtube.com/watch?v=xHi8PUIVyoo"
+      "url": "https://www.youtube.com/watch?v=xHi8PUIVyoo",
+      "stack_layer": "Infrastructure / Compute"
     },
     {
       "text": "The \"TiDAR\" architecture by NVIDIA introduces a hybrid diffusion-autoregressive method for language models, achieving 4.71x to 5.91x speedups in token generation without sacrificing quality.",
       "source": "Yannic Kilcher",
       "theme": "Foundation Models & Research",
-      "url": "https://www.youtube.com/watch?v=taCVT5vDAk0"
+      "url": "https://www.youtube.com/watch?v=taCVT5vDAk0",
+      "stack_layer": "Models / Algorithms"
     },
     {
       "text": "VegAS (Verifier-Guided Action Selection) improves robustness for MLLM-based embodied agents, addressing brittleness in out-of-distribution scenarios through test-time verification.",
       "source": "arXiv cs.AI",
       "theme": "Agents & Applications",
-      "url": "https://arxiv.org/abs/2605.12620"
+      "url": "https://arxiv.org/abs/2605.12620",
+      "stack_layer": "Applications"
     },
     {
       "text": "MAVIC (Macro-Action Value Correction for Instruction Compliance) is proposed to address inconsistent values in multi-agent reinforcement learning when external natural language instructions interrupt ongoing behavior.",
       "source": "arXiv cs.AI",
       "theme": "Agents & Applications",
-      "url": "https://arxiv.org/abs/2605.12655"
+      "url": "https://arxiv.org/abs/2605.12655",
+      "stack_layer": "Applications"
     },
     {
       "text": "BenchJack offers an automated framework to audit AI agent benchmarks, identifying \"reward hacking\" flaws and urging \"secure by design\" practices to prevent agents from maximizing scores without performing intended tasks.",
       "source": "arXiv cs.AI",
       "theme": "Agents & Applications",
-      "url": "https://arxiv.org/abs/2605.12673"
+      "url": "https://arxiv.org/abs/2605.12673",
+      "stack_layer": "Applications"
     },
     {
       "text": "REVELIO, a new framework, systematically uncovers interpretable failure modes in Vision-Language Models by defining failures as compositions of domain-relevant concepts, crucial for safety-critical applications.",
       "source": "arXiv cs.AI",
       "theme": "Foundation Models & Research",
-      "url": "https://arxiv.org/abs/2605.12674"
+      "url": "https://arxiv.org/abs/2605.12674",
+      "stack_layer": "Models / Algorithms"
     },
     {
       "text": "Research explores learning transferable latent user preferences to guide LLMs towards human-aligned decision-making, addressing their struggle to incorporate implicit human desires across tasks.",
       "source": "arXiv cs.AI",
       "theme": "Agents & Applications",
-      "url": "https://arxiv.org/abs/2605.12682"
+      "url": "https://arxiv.org/abs/2605.12682",
+      "stack_layer": "Applications"
     },
     {
       "text": "AI's integration into software development is automating boilerplate tasks, allowing human programmers to focus on architectural decisions and creative problem-solving rather than low-level implementation details.",
       "source": "Yannic Kilcher",
       "theme": "Open Source & Tooling",
-      "url": "https://www.youtube.com/watch?v=DNajvkqfobY"
+      "url": "https://www.youtube.com/watch?v=DNajvkqfobY",
+      "stack_layer": "Platforms / Tools"
     }
   ],
   "narrative_threads": [

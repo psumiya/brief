@@ -28,7 +28,8 @@
         "Foundation Models & Research",
         "Agents & Applications",
         "Community & Discourse"
-      ]
+      ],
+      "stack_layer": "Models / Algorithms"
     },
     {
       "headline": "The Agent Paradox: Unprecedented Capabilities Meet Fundamental Flaws in Frontier Models",
@@ -65,7 +66,8 @@
         "Agents & Applications",
         "Foundation Models & Research",
         "Community & Discourse"
-      ]
+      ],
+      "stack_layer": "Applications"
     },
     {
       "headline": "Global Pursuit of Performance: Architectural Innovation and Infrastructure Optimization Drive the AI Race",
@@ -102,7 +104,8 @@
         "Hardware & Infrastructure",
         "Foundation Models & Research",
         "Open Source & Tooling"
-      ]
+      ],
+      "stack_layer": "Infrastructure / Compute"
     }
   ],
   "bullets": [
@@ -110,67 +113,78 @@
       "text": "IBM's Granite Embedding Multilingual R2, an Apache 2.0 licensed model, offers best-in-class retrieval quality for multilingual embeddings under 100M parameters, featuring a 32K context window.",
       "source": "HuggingFace Blog",
       "theme": "Foundation Models & Research",
-      "url": "https://huggingface.co/blog/ibm-granite/granite-embedding-multilingual-r2"
+      "url": "https://huggingface.co/blog/ibm-granite/granite-embedding-multilingual-r2",
+      "stack_layer": "Models / Algorithms"
     },
     {
       "text": "HuggingFace released new methods to unlock asynchronicity in continuous batching, a critical development for optimizing inference efficiency and throughput in LLM serving environments.",
       "source": "HuggingFace Blog",
       "theme": "Hardware & Infrastructure",
-      "url": "https://huggingface.co/blog/continuous_async"
+      "url": "https://huggingface.co/blog/continuous_async",
+      "stack_layer": "Infrastructure / Compute"
     },
     {
       "text": "A demonstration showcased an 'automated mansplainer' AI system running locally on an NVIDIA DGX Spark, leveraging Whisper, Mistral Medium, and Vibe Voice for an end-to-end speech-to-speech application.",
       "source": "Yannic Kilcher",
       "theme": "Agents & Applications",
-      "url": "https://www.youtube.com/watch?v=xHi8PUIVyoo"
+      "url": "https://www.youtube.com/watch?v=xHi8PUIVyoo",
+      "stack_layer": "Applications"
     },
     {
       "text": "DeepSeek-V4 Pro now supports an impressive one million token context length, demonstrating superior reasoning performance relative to GPT-5.2 and Gemini 3.0 Pro at approximately one-tenth of the cost.",
       "source": "AI Explained",
       "theme": "Foundation Models & Research",
-      "url": "https://www.youtube.com/watch?v=jz0rNhfAKo8"
+      "url": "https://www.youtube.com/watch?v=jz0rNhfAKo8",
+      "stack_layer": "Models / Algorithms"
     },
     {
       "text": "Matt Pocock's discussion on AI engineering highlights that strong software engineering fundamentals, particularly Domain-Driven Design (DDD), are crucial for developing maintainable and adaptable AI-assisted systems and fostering a 'unified domain model' for human-AI collaboration.",
       "source": "Latent Space",
       "theme": "Community & Discourse",
-      "url": "https://www.youtube.com/watch?v=rlM_fAKxB3Q"
+      "url": "https://www.youtube.com/watch?v=rlM_fAKxB3Q",
+      "stack_layer": "Platforms / Tools"
     },
     {
       "text": "The Institute for Law & AI proposed 'radical optionality,' advocating that governments proactively invest in tools and frameworks now to manage potential future crises from transformative AI systems.",
       "source": "Import AI",
       "theme": "Community & Discourse",
-      "url": "https://importai.substack.com/p/import-ai-456-rsi-and-economic-growth"
+      "url": "https://importai.substack.com/p/import-ai-456-rsi-and-economic-growth",
+      "stack_layer": "Platforms / Tools"
     },
     {
       "text": "The philosophical debate on AI creativity continues, distinguishing combinatorial, exploratory, and transformational creativity, with current generative AI primarily operating in the first two realms due to a lack of conscious intent or subjective understanding.",
       "source": "Yannic Kilcher",
       "theme": "Foundation Models & Research",
-      "url": "https://www.youtube.com/watch?v=DNajvkqfobY"
+      "url": "https://www.youtube.com/watch?v=DNajvkqfobY",
+      "stack_layer": "Models / Algorithms"
     },
     {
       "text": "GraphBit was introduced as an engine-orchestrated framework for agentic LLM workflows, defining processes as deterministic directed acyclic graphs (DAGs) to mitigate hallucinated routing and improve reproducibility.",
       "source": "arXiv (cs.AI + cs.LG + cs.CL)",
       "theme": "Agents & Applications",
-      "url": "https://arxiv.org/abs/2605.13848"
+      "url": "https://arxiv.org/abs/2605.13848",
+      "stack_layer": "Applications"
     },
     {
       "text": "A novel two-dimensional framework for AI agent design patterns was proposed, categorizing systems by cognitive function and execution topology, offering a more nuanced understanding of architectural distinctions and failure modes.",
       "source": "arXiv (cs.AI + cs.LG + cs.CL)",
       "theme": "Agents & Applications",
-      "url": "https://arxiv.org/abs/2605.13850"
+      "url": "https://arxiv.org/abs/2605.13850",
+      "stack_layer": "Applications"
     },
     {
       "text": "OpenAI's internal evaluations for GPT-5.5 indicate that the model 'does not have a plausible chance of reaching a high threshold' for recursive self-improvement, a significant admission regarding autonomous AGI development.",
       "source": "AI Explained",
       "theme": "Foundation Models & Research",
-      "url": "https://www.youtube.com/watch?v=jz0rNhfAKo8"
+      "url": "https://www.youtube.com/watch?v=jz0rNhfAKo8",
+      "stack_layer": "Models / Algorithms"
     },
     {
       "text": "Anthropic's Claude Opus 4.7 showed mixed benchmark results, with some deliberate reductions in capabilities in certain areas, amid an ongoing rivalry with OpenAI for frontier model leadership.",
       "source": "AI Explained",
       "theme": "Foundation Models & Research",
-      "url": "https://www.youtube.com/watch?v=QVJcdfkRpH8"
+      "url": "https://www.youtube.com/watch?v=QVJcdfkRpH8",
+      "stack_layer": "Models / Algorithms"
     }
   ],
   "narrative_threads": [

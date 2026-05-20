@@ -367,3 +367,20 @@ def save_output(brief: dict, date: str) -> None:
     (OUTPUT_DIR / "narrative_threads.json").write_text(
         json.dumps(threads, ensure_ascii=False, indent=2), encoding="utf-8"
     )
+
+    update_index(date)
+
+
+INDEX_MAX = 90
+
+
+def update_index(date: str) -> None:
+    OUTPUT_DIR.mkdir(exist_ok=True)
+    index_path = OUTPUT_DIR / "index.json"
+    if index_path.exists():
+        existing = json.loads(index_path.read_text(encoding="utf-8")).get("dates", [])
+    else:
+        existing = []
+    dates = [date] + [d for d in existing if d != date]
+    dates = dates[:INDEX_MAX]
+    index_path.write_text(json.dumps({"dates": dates}, ensure_ascii=False, indent=2), encoding="utf-8")
