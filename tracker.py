@@ -1,3 +1,4 @@
+import threading
 from dataclasses import dataclass
 
 
@@ -25,25 +26,30 @@ class CallRecord:
 class TokenTracker:
     def __init__(self):
         self._calls: list[CallRecord] = []
+        self._lock = threading.Lock()
 
     def track_gemini(self, label: str, response) -> None:
         u = response.usage_metadata
-        self._calls.append(CallRecord(
+        record = CallRecord(
             label=label,
             model="gemini-2.5-flash",
             input_tokens=getattr(u, "prompt_token_count", 0),
             output_tokens=getattr(u, "candidates_token_count", 0),
-        ))
+        )
+        with self._lock:
+            self._calls.append(record)
 
     def track_claude(self, label: str, response) -> None:
         u = response.usage
-        self._calls.append(CallRecord(
+        record = CallRecord(
             label=label,
             model="claude-sonnet-4-6",
             input_tokens=getattr(u, "input_tokens", 0),
             output_tokens=getattr(u, "output_tokens", 0),
             cache_read_tokens=getattr(u, "cache_read_input_tokens", 0),
-        ))
+        )
+        with self._lock:
+            self._calls.append(record)
 
     def summary(self) -> None:
         if not self._calls:

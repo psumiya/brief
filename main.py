@@ -108,14 +108,25 @@ def run_synthesis(
     log.debug("Prompt size: %d chars", len(user_content))
     log.info("Sending to %s…", MODEL)
     t0 = time.time()
-    response = client.models.generate_content(
-        model=MODEL,
-        contents=user_content,
-        config=gtypes.GenerateContentConfig(
-            system_instruction=SYSTEM_PROMPT,
-            response_mime_type="application/json",
-        ),
-    )
+    for attempt in range(3):
+        try:
+            response = client.models.generate_content(
+                model=MODEL,
+                contents=user_content,
+                config=gtypes.GenerateContentConfig(
+                    system_instruction=SYSTEM_PROMPT,
+                    response_mime_type="application/json",
+                ),
+            )
+            break
+        except Exception as e:
+            err = str(e)
+            if ("502" in err or "503" in err) and attempt < 2:
+                wait = 30 * (attempt + 1)
+                log.warning("Synthesis transient error (attempt %d/3) — retrying in %ds: %s", attempt + 1, wait, err[:120])
+                time.sleep(wait)
+            else:
+                raise
     tracker.track_gemini("gemini: synthesis", response)
     elapsed = time.time() - t0
     u = response.usage_metadata
@@ -188,6 +199,17 @@ def main():
     total_items = sum(len(s.get("items", [])) for s in pre_fetched)
     log.info("Phase 1 done in %.1fs — %d items across %d sources",
              time.time() - t1, total_items, len(pre_fetched))
+
+    passed = [(s["id"], len(s["items"])) for s in pre_fetched if "error" not in s]
+    failed = [(s["id"], s.get("error", "unknown")) for s in pre_fetched if "error" in s]
+    print("\n── Fetch Results ────────────────────────────────────────────────────")
+    for sid, count in passed:
+        print(f"  ✓  {sid:<36} {count} items")
+    for sid, err in failed:
+        short_err = err.split("\n")[0][:80]
+        print(f"  ✗  {sid:<36} FAILED — {short_err}")
+    print(f"  {'':38} {len(passed)} passed, {len(failed)} failed")
+    print("─────────────────────────────────────────────────────────────────────\n")
 
     if args.fetch_only:
         log.info("Fetch-only mode — stopping before synthesis.")

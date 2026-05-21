@@ -9,6 +9,7 @@ import os
 import time
 import urllib.request
 import urllib.parse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -314,28 +315,44 @@ def fetch_youtube_source(source: dict, tracker: TokenTracker, client: genai.Clie
 
 # ── Fetch all sources ──────────────────────────────────────────────────────────
 
-def fetch_all_sources(sources: list[dict], tracker: TokenTracker) -> list[dict]:
-    results = []
-    failed = []
-    for source in sources:
-        try:
-            if source["type"] == "rss":
-                items = fetch_rss_source(source)
-            elif source["type"] == "youtube":
-                items = fetch_youtube_source(source, tracker)
-            elif source["type"] == "arxiv":
-                items = fetch_arxiv_source(source)
-            else:
-                logger.warning("  [skip] Unknown source type: %s", source["type"])
-                continue
-            results.append({**source, "items": items})
-            logger.debug("  ✓ %s: %d items", source["name"], len(items))
-        except Exception as e:
-            logger.error("  %s: %s", source["name"], e)
-            failed.append(source["id"])
-            results.append({**source, "items": [], "error": str(e)})
+def _fetch_one(source: dict, tracker: TokenTracker) -> dict:
+    if source["type"] == "rss":
+        items = fetch_rss_source(source)
+    elif source["type"] == "youtube":
+        items = fetch_youtube_source(source, tracker)
+    elif source["type"] == "arxiv":
+        items = fetch_arxiv_source(source)
+    else:
+        raise ValueError(f"Unknown source type: {source['type']}")
+    return {**source, "items": items}
 
-    return results
+
+def fetch_all_sources(sources: list[dict], tracker: TokenTracker) -> list[dict]:
+    # YouTube is rate-limited by Gemini; give it fewer workers than RSS/arXiv.
+    youtube_sources = [s for s in sources if s["type"] == "youtube"]
+    other_sources   = [s for s in sources if s["type"] != "youtube"]
+
+    futures_map: dict = {}
+    results_by_id: dict = {}
+
+    with ThreadPoolExecutor(max_workers=8) as other_ex, \
+         ThreadPoolExecutor(max_workers=2) as yt_ex:
+        for source in other_sources:
+            futures_map[other_ex.submit(_fetch_one, source, tracker)] = source
+        for source in youtube_sources:
+            futures_map[yt_ex.submit(_fetch_one, source, tracker)] = source
+
+        for future in as_completed(futures_map):
+            source = futures_map[future]
+            try:
+                results_by_id[source["id"]] = future.result()
+                logger.debug("  ✓ %s: %d items", source["name"], len(results_by_id[source["id"]]["items"]))
+            except Exception as e:
+                logger.error("  %s: %s", source["name"], e)
+                results_by_id[source["id"]] = {**source, "items": [], "error": str(e)}
+
+    # Preserve original source order
+    return [results_by_id[s["id"]] for s in sources if s["id"] in results_by_id]
 
 
 # ── Output ─────────────────────────────────────────────────────────────────────
