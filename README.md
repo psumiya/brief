@@ -37,7 +37,12 @@ python main.py --no-fetch
 
 # Force re-fetch, bypass cache
 FORCE_REFRESH=1 python main.py
+
+# Force re-fetch AND re-analyze already-seen items
+FORCE_REFRESH=1 python main.py  # then delete output/.seen_items.json to reset seen log
 ```
+
+Items are deduplicated across runs via `output/.seen_items.json`. URLs seen in any successful run within the last 7 days are skipped at synthesis time. The file is self-pruning — no manual cleanup needed.
 
 ## Deploy
 

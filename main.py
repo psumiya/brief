@@ -27,7 +27,8 @@ from google.genai import types as gtypes
 
 from sources import SOURCES
 from tracker import TokenTracker
-from tools import fetch_all_sources, load_threads, save_output, load_cache
+from tools import fetch_all_sources, load_threads, save_output, load_cache, \
+    load_seen_items, save_seen_items, filter_seen_items, mark_items_seen
 from prompts import SYSTEM_PROMPT, build_user_prompt
 try:
     from rag import index_brief, build_rag_context_block, RAG_DB
@@ -196,9 +197,11 @@ def main():
     else:
         pre_fetched = fetch_all_sources(sources, tracker)
 
+    seen = load_seen_items()
+    pre_fetched, skipped = filter_seen_items(pre_fetched, seen)
     total_items = sum(len(s.get("items", [])) for s in pre_fetched)
-    log.info("Phase 1 done in %.1fs — %d items across %d sources",
-             time.time() - t1, total_items, len(pre_fetched))
+    log.info("Phase 1 done in %.1fs — %d items across %d sources (%d already-seen skipped)",
+             time.time() - t1, total_items, len(pre_fetched), skipped)
 
     passed = [(s["id"], len(s["items"])) for s in pre_fetched if "error" not in s]
     failed = [(s["id"], s.get("error", "unknown")) for s in pre_fetched if "error" in s]
@@ -251,6 +254,8 @@ def main():
     log.info("Phase 3: Writing output…")
     t3 = time.time()
     save_output(brief, date)
+    mark_items_seen(pre_fetched, seen)
+    save_seen_items(seen)
     log.info("Wrote output/brief-%s.json + latest.json", date)
 
     if _RAG_AVAILABLE:

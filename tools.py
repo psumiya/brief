@@ -65,6 +65,55 @@ def save_cache(source_id: str, data: list, cache_dir: Path | None = None) -> Non
     )
 
 
+# ── Seen-items (cross-run dedup) ───────────────────────────────────────────────
+
+SEEN_ITEMS_FILE = OUTPUT_DIR / ".seen_items.json"
+
+
+def load_seen_items() -> dict[str, str]:
+    """Return {url: iso_timestamp} for items seen within RECENCY_DAYS, pruning older entries."""
+    if not SEEN_ITEMS_FILE.exists():
+        return {}
+    try:
+        data: dict[str, str] = json.loads(SEEN_ITEMS_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    cutoff = datetime.now(timezone.utc) - timedelta(days=RECENCY_DAYS)
+    return {
+        url: ts for url, ts in data.items()
+        if datetime.fromisoformat(ts) >= cutoff
+    }
+
+
+def save_seen_items(seen: dict[str, str]) -> None:
+    OUTPUT_DIR.mkdir(exist_ok=True)
+    SEEN_ITEMS_FILE.write_text(json.dumps(seen, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def mark_items_seen(pre_fetched: list[dict], seen: dict[str, str]) -> None:
+    """Add all item URLs from pre_fetched into seen (mutates seen in place)."""
+    now = datetime.now(timezone.utc).isoformat()
+    for source in pre_fetched:
+        for item in source.get("items", []):
+            url = item.get("url", "")
+            if url:
+                seen[url] = now
+
+
+def filter_seen_items(pre_fetched: list[dict], seen: dict[str, str]) -> tuple[list[dict], int]:
+    """Return (filtered pre_fetched, total skipped count) excluding already-seen items."""
+    filtered = []
+    total_skipped = 0
+    for source in pre_fetched:
+        new_items = [item for item in source.get("items", []) if item.get("url") not in seen]
+        skipped = len(source.get("items", [])) - len(new_items)
+        total_skipped += skipped
+        if skipped:
+            logger.info("  [dedup] %s — skipped %d already-seen item(s)", source["name"], skipped)
+        filtered.append({**source, "items": new_items})
+    return filtered, total_skipped
+
+
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 def _is_recent(date_str: str | None) -> bool:
