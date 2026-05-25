@@ -1,0 +1,8 @@
+{
+  "Records": [
+    {
+      "messageId": "test-msg-3",
+      "body": "{\"type\": \"FETCH_ARXIV\", \"run_id\": \"2026-05-24T06:00:00Z\", \"date\": \"2026-05-24\", \"source_id\": \"arxiv-ai\", \"source_config\": {\"id\": \"arxiv-ai\", \"name\": \"arXiv (cs.AI + cs.LG + cs.CL)\", \"type\": \"arxiv\", \"categories\": [\"cs.AI\", \"cs.LG\", \"cs.CL\"], \"weight\": 3}}"
+    }
+  ]
+}

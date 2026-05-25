@@ -1,0 +1,208 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Brief serverless pipeline — daily AI digest generator.
+  Fan-out fetch Lambdas -> DynamoDB Streams coordinator -> aggregate Lambda -> S3 + CloudFront.
+
+Parameters:
+  Stage:
+    Type: String
+    AllowedValues: [dev, prod]
+    Default: dev
+    Description: "dev writes to brief-dev/ prefix; prod writes to brief/ prefix (live site)"
+  S3Bucket:
+    Type: String
+    Default: algoclinic.com
+  CloudFrontDistId:
+    Type: String
+    Default: ""
+    Description: "CloudFront distribution ID — leave empty for dev (no invalidation)"
+  GoogleApiKey:
+    Type: String
+    NoEcho: true
+    Description: "Google Gemini API key (GOOGLE_API_KEY)"
+  ScheduleExpression:
+    Type: String
+    Default: "cron(0 13 * * ? *)"
+    Description: "EventBridge schedule — default 1pm UTC (9am ET)"
+
+Conditions:
+  IsProd: !Equals [!Ref Stage, prod]
+  HasCFDist: !Not [!Equals [!Ref CloudFrontDistId, ""]]
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Architectures: [arm64]
+    Environment:
+      Variables:
+        STAGE: !Ref Stage
+        S3_BUCKET: !Ref S3Bucket
+        S3_PREFIX: !Sub "brief-${Stage}"
+        GOOGLE_API_KEY: !Ref GoogleApiKey
+        DDB_TABLE: !Ref BriefRunsTable
+        SQS_QUEUE_URL: !Ref BriefQueue
+        CLOUDFRONT_DIST_ID: !Ref CloudFrontDistId
+        FORCE_REFRESH: "1"
+
+Resources:
+
+  # ── SQS ─────────────────────────────────────────────────────────────────────
+
+  BriefQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "brief-queue-${Stage}"
+      VisibilityTimeout: 720        # 12 min — must exceed WorkerFunction timeout (600s)
+      MessageRetentionPeriod: 3600  # 1 hour; messages older than that are stale runs
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt BriefDLQ.Arn
+        maxReceiveCount: 2
+
+  BriefDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "brief-dlq-${Stage}"
+      MessageRetentionPeriod: 1209600  # 14 days
+
+  # ── DynamoDB ─────────────────────────────────────────────────────────────────
+
+  BriefRunsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "brief-runs-${Stage}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: run_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: run_id
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+
+  # ── Lambda functions ─────────────────────────────────────────────────────────
+
+  OrchestratorFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      FunctionName: !Sub "brief-orchestrator-${Stage}"
+      Handler: fn_orchestrator.handler
+      CodeUri: ./
+      MemorySize: 256
+      Timeout: 30
+      Events:
+        DailySchedule:
+          Type: Schedule
+          Properties:
+            Schedule: !Ref ScheduleExpression
+            Enabled: !If [IsProd, true, false]
+            Description: !Sub "Daily brief run (${Stage})"
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref BriefRunsTable
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt BriefQueue.QueueName
+
+  WorkerFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      FunctionName: !Sub "brief-worker-${Stage}"
+      Handler: fn_worker.handler
+      CodeUri: ./
+      MemorySize: 512
+      Timeout: 600               # 10 min — covers slow YouTube/Gemini synthesis
+      Events:
+        SQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt BriefQueue.Arn
+            BatchSize: 1
+            FunctionResponseTypes:
+              - ReportBatchItemFailures
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref S3Bucket
+        - S3WritePolicy:
+            BucketName: !Ref S3Bucket
+        - DynamoDBWritePolicy:
+            TableName: !Ref BriefRunsTable
+        - Statement:
+            - Effect: Allow
+              Action: cloudfront:CreateInvalidation
+              Resource: "*"
+
+  CoordinatorFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      FunctionName: !Sub "brief-coordinator-${Stage}"
+      Handler: fn_coordinator.handler
+      CodeUri: ./
+      MemorySize: 128
+      Timeout: 10
+      Events:
+        DDBStream:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt BriefRunsTable.StreamArn
+            StartingPosition: LATEST
+            BatchSize: 10
+            FilterCriteria:
+              Filters:
+                - Pattern: '{"eventName": ["MODIFY", "INSERT"]}'
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref BriefRunsTable
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt BriefQueue.QueueName
+
+  # ── Alarms ────────────────────────────────────────────────────────────────────
+
+  DLQAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "brief-dlq-${Stage}-not-empty"
+      AlarmDescription: !Sub "Brief (${Stage}) pipeline message landed in DLQ — check CloudWatch Logs"
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt BriefDLQ.QueueName
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
+Outputs:
+  BriefQueueUrl:
+    Description: SQS queue URL
+    Value: !Ref BriefQueue
+  BriefDLQUrl:
+    Description: Dead-letter queue URL
+    Value: !Ref BriefDLQ
+  BriefRunsTableName:
+    Description: DynamoDB runs table
+    Value: !Ref BriefRunsTable
+  OrchestratorFunctionArn:
+    Description: Orchestrator Lambda ARN
+    Value: !GetAtt OrchestratorFunction.Arn
+  WorkerFunctionArn:
+    Description: Worker Lambda ARN
+    Value: !GetAtt WorkerFunction.Arn
+  CoordinatorFunctionArn:
+    Description: Coordinator Lambda ARN
+    Value: !GetAtt CoordinatorFunction.Arn
+  S3OutputPrefix:
+    Description: S3 prefix where brief output is written
+    Value: !Sub "s3://${S3Bucket}/brief-${Stage}/output/"

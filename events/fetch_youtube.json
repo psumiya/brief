@@ -1,0 +1,8 @@
+{
+  "Records": [
+    {
+      "messageId": "test-msg-2",
+      "body": "{\"type\": \"FETCH_YOUTUBE\", \"run_id\": \"2026-05-24T06:00:00Z\", \"date\": \"2026-05-24\", \"source_id\": \"yannic-kilcher\", \"source_config\": {\"id\": \"yannic-kilcher\", \"name\": \"Yannic Kilcher\", \"type\": \"youtube\", \"channel_id\": \"UCZHmQk67mSJgfCCTn7xBfew\", \"weight\": 5}}"
+    }
+  ]
+}
