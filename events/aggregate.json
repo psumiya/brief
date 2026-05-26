@@ -1,8 +1,4 @@
 {
-  "Records": [
-    {
-      "messageId": "test-msg-agg",
-      "body": "{\"type\": \"AGGREGATE\", \"run_id\": \"2026-05-24T06:00:00Z\", \"date\": \"2026-05-24\"}"
-    }
-  ]
+  "run_id": "2026-05-24T06:00:00Z",
+  "date": "2026-05-24"
 }

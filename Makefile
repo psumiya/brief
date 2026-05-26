@@ -2,12 +2,12 @@
 # Called by `sam build` with ARTIFACTS_DIR set to the staging directory.
 
 SHARED_PY   = tools.py prompts.py sources.py tracker.py
-HANDLER_PY  = fn_orchestrator.py fn_worker.py fn_coordinator.py
+HANDLER_PY  = fn_orchestrator.py fn_fetch.py fn_aggregate.py
 LAMBDA_REQS = lambda_requirements.txt
 
-.PHONY: build-OrchestratorFunction build-WorkerFunction build-CoordinatorFunction
+.PHONY: build-OrchestratorFunction build-FetchFunction build-AggregateFunction
 
-build-OrchestratorFunction build-WorkerFunction build-CoordinatorFunction:
+build-OrchestratorFunction build-FetchFunction build-AggregateFunction:
 	# Pure-Python packages: install normally (none-any wheels work on any platform)
 	pip3 install feedparser boto3 -t $(ARTIFACTS_DIR) --quiet --upgrade
 	# C-extension packages: force Linux ARM64 wheels so Lambda can load them

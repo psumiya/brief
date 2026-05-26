@@ -21,7 +21,7 @@ fail_on_empty_changeset = false
 parameter_overrides = [
     "Stage=dev",
     "S3Bucket=algoclinic.com",
-    "CloudFrontDistId=",
+    "CloudFrontDistId=NONE",
 ]
 
 # ── Prod ──────────────────────────────────────────────────────────────────────
