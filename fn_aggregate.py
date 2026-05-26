@@ -22,7 +22,7 @@ from google import genai
 from google.genai import types as gtypes
 
 GEMINI_MODEL = "gemini-2.5-flash"
-BEDROCK_MODEL_ID = "us.anthropic.claude-sonnet-4-6"
+BEDROCK_MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 
 def _log(obj: dict) -> None:
