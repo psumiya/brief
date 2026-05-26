@@ -22,7 +22,7 @@ from google import genai
 from google.genai import types as gtypes
 
 GEMINI_MODEL = "gemini-2.5-flash"
-BEDROCK_MODEL_ID = "anthropic.claude-sonnet-4-6"
+BEDROCK_MODEL_ID = "us.anthropic.claude-sonnet-4-6"
 
 
 def _log(obj: dict) -> None:
@@ -120,15 +120,9 @@ def _call_bedrock(user_content: str) -> str:
 
 def _synthesize(pre_fetched: list, threads: list, date: str, tracker: TokenTracker) -> dict:
     user_content = build_user_prompt(date, pre_fetched, threads)
-    provider = "bedrock"
-    try:
-        raw = _call_bedrock(user_content)
-    except Exception as e:
-        _log({"event": "bedrock_synthesis_failed", "error": str(e)[:200], "fallback": "gemini"})
-        raw = _call_gemini(user_content, tracker)
-        provider = "gemini"
+    raw = _call_bedrock(user_content)
     brief = _parse_brief(raw, pre_fetched)
-    brief["meta"]["synthesis_provider"] = provider
+    brief["meta"]["synthesis_provider"] = "bedrock"
     return brief
 
 
@@ -155,11 +149,22 @@ def _resolve_source_urls(brief: dict, pre_fetched: list) -> None:
 def handler(event, context):
     run_id = event["run_id"]
     date = event["date"]
+    force = event.get("force", False)
     bucket = os.environ["S3_BUCKET"]
     prefix = os.environ["S3_PREFIX"]
     run_start = time.time()
 
-    _log({"event": "aggregate_started", "run_id": run_id, "date": date})
+    _log({"event": "aggregate_started", "run_id": run_id, "date": date, "force": force})
+
+    if not force:
+        try:
+            _s3().head_object(Bucket=bucket, Key=f"{prefix}/output/brief-{date}.json")
+            _log({"event": "aggregate_skipped", "run_id": run_id,
+                  "reason": f"brief-{date}.json already exists — pass force=true to re-synthesize"})
+            return {"run_id": run_id, "date": date, "status": "skipped", "reason": "already_exists"}
+        except ClientError as e:
+            if e.response["Error"]["Code"] not in ("404", "NoSuchKey"):
+                raise
 
     s3 = _s3()
     paginator = s3.get_paginator("list_objects_v2")

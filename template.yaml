@@ -109,7 +109,7 @@ Resources:
               Resource: "*"
             - Effect: Allow
               Action: bedrock:InvokeModel
-              Resource: "arn:aws:bedrock:*::foundation-model/anthropic.claude-sonnet-4-6"
+              Resource: "*"
 
   # ── Step Functions state machine ─────────────────────────────────────────────
 
