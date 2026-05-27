@@ -67,6 +67,8 @@ Resources:
             Enabled: !If [IsProd, true, false]
             Description: !Sub "Daily brief run (${Stage})"
       Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref S3Bucket
         - Statement:
             - Effect: Allow
               Action: states:StartExecution
