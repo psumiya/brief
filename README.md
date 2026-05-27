@@ -1,15 +1,30 @@
 # brief
 
-A daily AI intelligence digest generator. Fetches content from RSS feeds and YouTube channels, synthesizes it with Gemini, and publishes a structured brief to a static site on S3/CloudFront.
+A daily AI intelligence digest generator. Fetches content from RSS feeds and YouTube channels, synthesizes it with an LLM, and publishes a structured brief to a static site on S3/CloudFront.
+
+Supports two modes: a **local run** via `main.py` (Gemini), and a **serverless AWS pipeline** (Step Functions + Bedrock) that runs on a schedule.
 
 ## How it works
+
+### Local mode
 
 1. **Fetch** — pulls recent items from configured sources (RSS + YouTube)
 2. **Synthesize** — sends content to Gemini 2.5 Flash with a weighted prompt; produces bullets, deep-takes, and narrative threads
 3. **Store** — writes JSON output and indexes it into a SQLite vector DB for RAG context in future runs
 4. **Deploy** — uploads the static site and output JSON to S3, invalidates CloudFront
 
+### Serverless pipeline (AWS)
+
+1. **Orchestrate** — `fn_orchestrator` Lambda starts a Step Functions execution; short-circuits if today's brief already exists
+2. **Fetch (parallel)** — Step Functions fans out to `fn_fetch` Lambda, one invocation per source (up to 10 concurrent); results written to S3
+3. **Synthesize** — `fn_aggregate` Lambda reads all fetch results and calls Bedrock Claude Haiku via the Converse API
+4. **Publish** — aggregate uploads the brief JSON to S3 and invalidates CloudFront
+
+EventBridge triggers the pipeline daily at 5am UTC (9pm PT) in prod.
+
 ## Setup
+
+### Local
 
 ```bash
 python3 -m venv .venv
@@ -20,7 +35,23 @@ cp .env.example .env
 # fill in GOOGLE_API_KEY (required), and S3/CloudFront vars if deploying
 ```
 
+### Serverless (AWS SAM)
+
+```bash
+pip install aws-sam-cli
+
+# Deploy dev stack (manual trigger only)
+sam build && sam deploy --config-env dev
+
+# Deploy prod stack (EventBridge enabled)
+sam build && sam deploy --config-env prod
+```
+
+Requires the `aws` CLI configured with IAM permissions for Lambda, Step Functions, S3, CloudFront, EventBridge, Bedrock, and CloudWatch.
+
 ## Usage
+
+### Local
 
 ```bash
 # Full run (fetches sources, synthesizes, writes output)
@@ -44,7 +75,23 @@ FORCE_REFRESH=1 python main.py  # then delete output/.seen_items.json to reset s
 
 Items are deduplicated across runs via `output/.seen_items.json`. URLs seen in any successful run within the last 7 days are skipped at synthesis time. The file is self-pruning — no manual cleanup needed.
 
-## Deploy
+### Serverless (manual trigger)
+
+```bash
+# Trigger the orchestrator Lambda directly
+aws lambda invoke \
+  --function-name brief-orchestrator-prod \
+  --payload '{}' \
+  response.json
+
+# Force re-run even if today's brief already exists
+aws lambda invoke \
+  --function-name brief-orchestrator-prod \
+  --payload '{"force": true}' \
+  response.json
+```
+
+## Deploy (local mode)
 
 ```bash
 python deploy.py          # dry-run preview, then confirm
@@ -71,7 +118,16 @@ Configured in `sources.py`. Each source has an `id`, `type` (`rss` or `youtube`)
 
 ## Environment variables
 
-See `.env.example`. `GOOGLE_API_KEY` is required to run synthesis. S3/CloudFront vars are only needed for deployment.
+See `.env.example`. Key variables:
+
+| Variable | Required for | Notes |
+|----------|-------------|-------|
+| `GOOGLE_API_KEY` | Local synthesis (Gemini) | Also used for YouTube fetching |
+| `AWS_REGION` | Serverless pipeline | Bedrock and all AWS services |
+| `S3_BUCKET` | Deployment | Target bucket for static site |
+| `CLOUDFRONT_DISTRIBUTION_ID` | Deployment | For cache invalidation |
+
+See `.env.example` for the full list.
 
 ## Tests
 
