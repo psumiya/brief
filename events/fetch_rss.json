@@ -1,0 +1,13 @@
+{
+  "type": "FETCH_RSS",
+  "run_id": "2026-05-24T06:00:00Z",
+  "date": "2026-05-24",
+  "source_id": "import-ai",
+  "source_config": {
+    "id": "import-ai",
+    "name": "Import AI",
+    "type": "rss",
+    "url": "https://importai.substack.com/feed",
+    "weight": 5
+  }
+}

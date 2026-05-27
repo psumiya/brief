@@ -1,0 +1,47 @@
+version = 0.1
+
+# ── Dev (default) ─────────────────────────────────────────────────────────────
+# Deploys to brief-dev/ S3 prefix. EventBridge rule is DISABLED.
+# Validate with: sam deploy && aws lambda invoke --function-name brief-orchestrator-dev ...
+
+[default.global.parameters]
+stack_name    = "brief-dev"
+region        = "us-west-2"
+capabilities  = "CAPABILITY_IAM"
+resolve_s3    = true
+s3_prefix     = "brief-sam-builds"
+
+[default.deploy.parameters]
+confirm_changeset = false
+fail_on_empty_changeset = false
+# GoogleApiKey must be passed at deploy time:
+#   sam deploy --parameter-overrides GoogleApiKey=<key>
+# or set SSM parameter /brief/GOOGLE_API_KEY and run:
+#   sam deploy --parameter-overrides "GoogleApiKey=$(aws ssm get-parameter --name /brief/GOOGLE_API_KEY --with-decryption --query Parameter.Value --output text)"
+parameter_overrides = [
+    "Stage=dev",
+    "S3Bucket=algoclinic.com",
+    "CloudFrontDistId=NONE",
+]
+
+# ── Prod ──────────────────────────────────────────────────────────────────────
+# Deploys to brief/ S3 prefix (the live site). EventBridge rule ENABLED.
+# Only promote after a successful dev run.
+
+[prod.global.parameters]
+stack_name    = "brief-prod"
+region        = "us-west-2"
+capabilities  = "CAPABILITY_IAM"
+resolve_s3    = true
+s3_prefix     = "brief-sam-builds"
+
+[prod.deploy.parameters]
+confirm_changeset = false
+fail_on_empty_changeset = false
+# GoogleApiKey must be passed at deploy time:
+#   sam deploy --config-env prod --parameter-overrides "Stage=prod S3Bucket=algoclinic.com CloudFrontDistId=E35HO90YLKGBXV GoogleApiKey=$(aws ssm get-parameter --name /brief/GOOGLE_API_KEY --with-decryption --query Parameter.Value --output text)"
+parameter_overrides = [
+    "Stage=prod",
+    "S3Bucket=algoclinic.com",
+    "CloudFrontDistId=E35HO90YLKGBXV",
+]

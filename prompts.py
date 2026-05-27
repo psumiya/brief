@@ -61,7 +61,7 @@ OUTPUT FORMAT: Return a single JSON object matching this exact structure. No mar
       "deck": "One italic sentence that expands the headline",
       "kicker": "Lead",
       "body": ["First paragraph with drop cap.", "Second paragraph.", "Third paragraph."],
-      "sources": [{"name": "Source Name", "url": "https://example.com/article"}, {"name": "Another Source", "url": null}],
+      "sources": ["Source Name", "Another Source"],
       "themes": ["Foundation Models & Research"],
       "stack_layer": "Models / Algorithms"
     }
@@ -95,7 +95,7 @@ OUTPUT FORMAT: Return a single JSON object matching this exact structure. No mar
 }
 
 Rules for each field:
-- deep_takes: exactly 3 items. kicker must be one of: Lead, Research, Field Notes. sources is an array of objects with "name" (string) and "url" (string or null — use the most relevant article URL for that source, or null if unknown). stack_layer must be one of the 5 stack layers above.
+- deep_takes: exactly 3 items. kicker must be one of: Lead, Research, Field Notes. sources is an array of source name strings (e.g. "Import AI") — use only names from the PRE-FETCHED SOURCES section. stack_layer must be one of the 5 stack layers above.
 - bullets: 10-15 items. theme must be one of the 5 themes above. stack_layer must be one of the 5 stack layers above.
 - narrative_threads: status must be one of: active, cooling, resolved.
 - url in bullets: omit the field entirely if no URL is available (do not use null or empty string)."""

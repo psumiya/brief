@@ -270,55 +270,44 @@ def synthesize_youtube_video(video_id: str, tracker: TokenTracker, label: str, c
     prompt = YOUTUBE_SYNTHESIS_PROMPT.format(url=url)
     client = client or _gemini_client()
 
-    for attempt in range(3):
-        try:
-            t0 = time.time()
-            response = client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=[
-                    gtypes.Content(
-                        role="user",
-                        parts=[
-                            gtypes.Part(file_data=gtypes.FileData(file_uri=url)),
-                            gtypes.Part(text=prompt),
-                        ]
-                    )
+    t0 = time.time()
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=[
+            gtypes.Content(
+                role="user",
+                parts=[
+                    gtypes.Part(file_data=gtypes.FileData(file_uri=url)),
+                    gtypes.Part(text=prompt),
                 ]
             )
-            tracker.track_gemini(label, response)
-            elapsed = time.time() - t0
-            u = response.usage_metadata
-            logger.debug(
-                "    %s: %.1fs  in=%s  out=%s tokens",
-                label, elapsed,
-                getattr(u, "prompt_token_count", "?"),
-                getattr(u, "candidates_token_count", "?"),
-            )
-            raw = response.text.strip()
-            if raw.startswith("```"):
-                raw = raw.split("```")[1]
-                if raw.startswith("json"):
-                    raw = raw[4:]
-                raw = raw.strip()
-            try:
-                result = json.loads(raw)
-                result["url"] = url
-                return result
-            except json.JSONDecodeError:
-                logger.warning("    JSON parse failed for %s — storing raw text", video_id)
-                return {"title": f"Video {video_id}", "summary": raw[:500], "url": url, "significance": "medium"}
-
-        except Exception as e:
-            err = str(e)
-            if "429" in err and attempt < 2:
-                wait = 45 * (attempt + 1)
-                logger.warning("    Rate limited (attempt %d/3) — waiting %ds…", attempt + 1, wait)
-                time.sleep(wait)
-            else:
-                raise
+        ]
+    )
+    tracker.track_gemini(label, response)
+    elapsed = time.time() - t0
+    u = response.usage_metadata
+    logger.debug(
+        "    %s: %.1fs  in=%s  out=%s tokens",
+        label, elapsed,
+        getattr(u, "prompt_token_count", "?"),
+        getattr(u, "candidates_token_count", "?"),
+    )
+    raw = response.text.strip()
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+        raw = raw.strip()
+    try:
+        result = json.loads(raw)
+        result["url"] = url
+        return result
+    except json.JSONDecodeError:
+        logger.warning("    JSON parse failed for %s — storing raw text", video_id)
+        return {"title": f"Video {video_id}", "summary": raw[:500], "url": url, "significance": "medium"}
 
 
-def fetch_youtube_source(source: dict, tracker: TokenTracker, client: genai.Client | None = None) -> list[dict]:
+def fetch_youtube_source(source: dict, tracker: TokenTracker, client: genai.Client | None = None, seen: dict | None = None) -> list[dict]:
     cached = load_cache(source["id"])
     if cached is not None:
         logger.info("  [cache] %s (%d items)", source["name"], len(cached))
@@ -345,6 +334,10 @@ def fetch_youtube_source(source: dict, tracker: TokenTracker, client: genai.Clie
         video_id = entry.get("yt_videoid") or _extract_video_id(entry.get("link", ""))
         if not video_id:
             continue
+        url = f"https://www.youtube.com/watch?v={video_id}"
+        if seen and url in seen:
+            logger.debug("    skip (seen): %s", entry.get("title", "")[:60])
+            continue
         label = f"gemini: {source['id']}/{video_id[:8]}"
         logger.info("    → Gemini: %s", entry.get("title", video_id)[:60])
         try:
@@ -353,7 +346,11 @@ def fetch_youtube_source(source: dict, tracker: TokenTracker, client: genai.Clie
                 result["published"] = pub
                 items.append(result)
         except Exception as e:
-            logger.error("    Gemini error for %s: %s", video_id, e)
+            err = str(e)
+            if "400" in err and "INVALID_ARGUMENT" in err:
+                logger.debug("    skip %s: non-retryable Gemini error (%s)", video_id, err[:120])
+            else:
+                logger.warning("    skip %s: Gemini error %s", video_id, err[:200])
         if len(items) >= max_videos:
             break
 

@@ -1,0 +1,241 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Brief serverless pipeline — daily AI digest generator.
+  EventBridge → OrchestratorFunction → Step Functions (Map fetch → aggregate) → S3 + CloudFront.
+
+Parameters:
+  Stage:
+    Type: String
+    AllowedValues: [dev, prod]
+    Default: dev
+    Description: "dev writes to brief-dev/ prefix; prod writes to brief/ prefix (live site)"
+  S3Bucket:
+    Type: String
+    Default: algoclinic.com
+  CloudFrontDistId:
+    Type: String
+    Default: ""
+    Description: "CloudFront distribution ID — leave empty for dev (no invalidation)"
+  GoogleApiKey:
+    Type: String
+    NoEcho: true
+    Description: "Google Gemini API key (GOOGLE_API_KEY)"
+  ScheduleExpression:
+    Type: String
+    Default: "cron(0 5 * * ? *)"
+    Description: "EventBridge schedule — default 5am UTC (9pm PT)"
+
+Conditions:
+  IsProd: !Equals [!Ref Stage, prod]
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Architectures: [arm64]
+    Environment:
+      Variables:
+        STAGE: !Ref Stage
+        S3_BUCKET: !Ref S3Bucket
+        S3_PREFIX: !If [IsProd, "brief", !Sub "brief-${Stage}"]
+        GOOGLE_API_KEY: !Ref GoogleApiKey
+        CLOUDFRONT_DIST_ID: !Ref CloudFrontDistId
+        FORCE_REFRESH: "1"
+
+Resources:
+
+  # ── Lambda functions ─────────────────────────────────────────────────────────
+
+  OrchestratorFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      FunctionName: !Sub "brief-orchestrator-${Stage}"
+      Handler: fn_orchestrator.handler
+      CodeUri: ./
+      MemorySize: 256
+      Timeout: 30
+      Environment:
+        Variables:
+          STATE_MACHINE_ARN: !Ref BriefStateMachine
+      Events:
+        DailySchedule:
+          Type: Schedule
+          Properties:
+            Schedule: !Ref ScheduleExpression
+            Enabled: !If [IsProd, true, false]
+            Description: !Sub "Daily brief run (${Stage})"
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref S3Bucket
+        - Statement:
+            - Effect: Allow
+              Action: states:StartExecution
+              Resource: !Ref BriefStateMachine
+
+  FetchFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      FunctionName: !Sub "brief-fetch-${Stage}"
+      Handler: fn_fetch.handler
+      CodeUri: ./
+      MemorySize: 512
+      Timeout: 600
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref S3Bucket
+        - S3WritePolicy:
+            BucketName: !Ref S3Bucket
+
+  AggregateFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
+    Properties:
+      FunctionName: !Sub "brief-aggregate-${Stage}"
+      Handler: fn_aggregate.handler
+      CodeUri: ./
+      MemorySize: 512
+      Timeout: 300
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref S3Bucket
+        - S3WritePolicy:
+            BucketName: !Ref S3Bucket
+        - Statement:
+            - Effect: Allow
+              Action: cloudfront:CreateInvalidation
+              Resource: "*"
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - aws-marketplace:ViewSubscriptions
+                - aws-marketplace:Subscribe
+              Resource: "*"
+
+  # ── Step Functions state machine ─────────────────────────────────────────────
+
+  BriefStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub "brief-pipeline-${Stage}"
+      Definition:
+        Comment: "Brief daily digest — parallel fetch then aggregate"
+        StartAt: FetchAll
+        States:
+          FetchAll:
+            Type: Map
+            ItemsPath: "$.sources"
+            MaxConcurrency: 10
+            Iterator:
+              StartAt: FetchSource
+              States:
+                FetchSource:
+                  Type: Task
+                  Resource: "arn:aws:states:::lambda:invoke"
+                  Parameters:
+                    FunctionName: "${FetchFunctionArn}"
+                    Payload.$: "$"
+                  ResultSelector:
+                    source_id.$: "$.Payload.source_id"
+                    items_new.$: "$.Payload.items_new"
+                    success.$: "$.Payload.success"
+                  Retry:
+                    - ErrorEquals: ["Lambda.TooManyRequestsException", "Lambda.ServiceException",
+                                    "Lambda.AWSLambdaException"]
+                      IntervalSeconds: 30
+                      MaxAttempts: 2
+                      BackoffRate: 2
+                      JitterStrategy: FULL
+                  End: true
+            ResultPath: "$.fetch_results"
+            Next: Aggregate
+          Aggregate:
+            Type: Task
+            Resource: "arn:aws:states:::lambda:invoke"
+            Parameters:
+              FunctionName: "${AggregateFunctionArn}"
+              Payload:
+                run_id.$: "$.run_id"
+                date.$: "$.date"
+            ResultPath: "$.aggregate_result"
+            Retry:
+              - ErrorEquals: ["ServerError", "Lambda.ServiceException",
+                              "Lambda.AWSLambdaException", "Lambda.TooManyRequestsException"]
+                IntervalSeconds: 30
+                MaxAttempts: 3
+                BackoffRate: 2
+                JitterStrategy: FULL
+            End: true
+      DefinitionSubstitutions:
+        FetchFunctionArn: !GetAtt FetchFunction.Arn
+        AggregateFunctionArn: !GetAtt AggregateFunction.Arn
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref FetchFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref AggregateFunction
+        - Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogDelivery
+                - logs:GetLogDelivery
+                - logs:UpdateLogDelivery
+                - logs:DeleteLogDelivery
+                - logs:ListLogDeliveries
+                - logs:PutLogEvents
+                - logs:PutResourcePolicy
+                - logs:DescribeResourcePolicies
+                - logs:DescribeLogGroups
+              Resource: "*"
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt BriefPipelineLogGroup.Arn
+        IncludeExecutionData: false
+        Level: ERROR
+
+  BriefPipelineLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/states/brief-pipeline-${Stage}"
+      RetentionInDays: 14
+
+  # ── Alarms ────────────────────────────────────────────────────────────────────
+
+  PipelineFailureAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "brief-pipeline-${Stage}-failed"
+      AlarmDescription: !Sub "Brief (${Stage}) Step Functions execution failed"
+      Namespace: AWS/States
+      MetricName: ExecutionsFailed
+      Dimensions:
+        - Name: StateMachineArn
+          Value: !Ref BriefStateMachine
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
+Outputs:
+  OrchestratorFunctionArn:
+    Description: Orchestrator Lambda ARN
+    Value: !GetAtt OrchestratorFunction.Arn
+  FetchFunctionArn:
+    Description: Fetch worker Lambda ARN
+    Value: !GetAtt FetchFunction.Arn
+  AggregateFunctionArn:
+    Description: Aggregate Lambda ARN
+    Value: !GetAtt AggregateFunction.Arn
+  StateMachineArn:
+    Description: Step Functions state machine ARN
+    Value: !Ref BriefStateMachine
+  S3OutputPrefix:
+    Description: S3 prefix where brief output is written
+    Value: !Sub "s3://${S3Bucket}/brief-${Stage}/output/"
