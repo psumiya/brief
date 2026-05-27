@@ -6,6 +6,7 @@ from evals.schema import (
     VALID_KICKERS, VALID_THEMES, VALID_STACK_LAYERS, VALID_THREAD_STATUSES,
     FORBIDDEN_PHRASES, DEEP_TAKES_COUNT, BULLETS_MIN, BULLETS_MAX,
     BODY_MIN_CHARS, BULLET_MAX_CHARS, THREAD_SUMMARY_MIN_CHARS,
+    VALID_SYNTHESIS_PROVIDERS,
 )
 
 
@@ -26,10 +27,11 @@ def assert_deep_take(dt: dict, idx: int) -> None:
         assert isinstance(para, str) and para, f"{prefix}.body[{j}] must be non-empty string"
     assert isinstance(dt.get("sources"), list), f"{prefix}.sources must be a list"
     for j, src in enumerate(dt["sources"]):
-        if isinstance(src, dict):
-            assert "name" in src, f"{prefix}.sources[{j}] missing 'name'"
-        else:
-            assert isinstance(src, str) and src, f"{prefix}.sources[{j}] must be a non-empty string or object"
+        assert isinstance(src, dict) and src.get("name"), \
+            f"{prefix}.sources[{j}] must be an object with a non-empty 'name' field"
+        if "url" in src:
+            assert src["url"] is None or str(src["url"]).startswith("http"), \
+                f"{prefix}.sources[{j}].url must start with http or be null"
     themes = dt.get("themes", [])
     assert isinstance(themes, list), f"{prefix}.themes must be a list"
     for t in themes:
@@ -85,3 +87,5 @@ def assert_valid_brief(brief: dict) -> None:
     assert isinstance(meta.get("sources_fetched"), list) and meta["sources_fetched"], \
         "meta.sources_fetched must be a non-empty list"
     assert "generated_at" in brief, "missing generated_at"
+    assert meta.get("synthesis_provider") in VALID_SYNTHESIS_PROVIDERS, \
+        f"meta.synthesis_provider {meta.get('synthesis_provider')!r} not in {VALID_SYNTHESIS_PROVIDERS}"

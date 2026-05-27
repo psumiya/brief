@@ -23,6 +23,8 @@ VALID_STACK_LAYERS = {
 
 VALID_THREAD_STATUSES = {"active", "cooling", "resolved"}
 
+VALID_SYNTHESIS_PROVIDERS = {"bedrock", "gemini"}
+
 FORBIDDEN_PHRASES = [
     "it remains to be seen",
     "could potentially",

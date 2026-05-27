@@ -5,38 +5,33 @@ AI Intelligence Brief — daily digest generator.
 Usage:
   python main.py                     # full run (uses cache if available)
   python main.py --sources import-ai # test with one source
-  python main.py --fetch-only        # fetch + inspect, skip Gemini synthesis
+  python main.py --fetch-only        # fetch + inspect, skip synthesis
   python main.py --no-fetch          # use cached data, run synthesis only
   FORCE_REFRESH=1 python main.py     # bypass cache, re-fetch everything
 """
 
 import argparse
-import json
 import logging
 import os
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
 load_dotenv()
 
-from google import genai
-from google.genai import types as gtypes
-
 from sources import SOURCES
 from tracker import TokenTracker
 from tools import fetch_all_sources, load_threads, save_output, load_cache, \
     load_seen_items, save_seen_items, filter_seen_items, mark_items_seen
-from prompts import SYSTEM_PROMPT, build_user_prompt
+from prompts import build_user_prompt
+from synthesis import call_bedrock, parse_brief, resolve_source_urls
 try:
     from rag import index_brief, build_rag_context_block, RAG_DB
     _RAG_AVAILABLE = True
 except ImportError:
     _RAG_AVAILABLE = False
-
-MODEL = "gemini-2.5-flash"
 
 log = logging.getLogger(__name__)
 
@@ -90,81 +85,6 @@ def load_cached_sources(sources: list) -> list:
     return results
 
 
-def run_synthesis(
-    pre_fetched: list[dict],
-    threads: list[dict],
-    date: str,
-    tracker: TokenTracker,
-    client: genai.Client | None = None,
-    rag_context: str = "",
-) -> dict:
-    if client is None:
-        api_key = os.getenv("GOOGLE_API_KEY")
-        if not api_key:
-            log.error("GOOGLE_API_KEY not set")
-            sys.exit(1)
-        client = genai.Client(api_key=api_key)
-    user_content = build_user_prompt(date, pre_fetched, threads, rag_context=rag_context)
-
-    log.debug("Prompt size: %d chars", len(user_content))
-    log.info("Sending to %s…", MODEL)
-    t0 = time.time()
-    for attempt in range(3):
-        try:
-            response = client.models.generate_content(
-                model=MODEL,
-                contents=user_content,
-                config=gtypes.GenerateContentConfig(
-                    system_instruction=SYSTEM_PROMPT,
-                    response_mime_type="application/json",
-                ),
-            )
-            break
-        except Exception as e:
-            err = str(e)
-            if ("502" in err or "503" in err) and attempt < 2:
-                wait = 30 * (attempt + 1)
-                log.warning("Synthesis transient error (attempt %d/3) — retrying in %ds: %s", attempt + 1, wait, err[:120])
-                time.sleep(wait)
-            else:
-                raise
-    tracker.track_gemini("gemini: synthesis", response)
-    elapsed = time.time() - t0
-    u = response.usage_metadata
-    log.debug(
-        "Synthesis response: %.1fs  in=%s  out=%s tokens",
-        elapsed,
-        getattr(u, "prompt_token_count", "?"),
-        getattr(u, "candidates_token_count", "?"),
-    )
-
-    raw = response.text.strip()
-    # Strip markdown fences if model adds them despite instructions
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-        raw = raw.strip()
-
-    brief = json.loads(raw)
-    brief["generated_at"] = datetime.now(timezone.utc).isoformat()
-    brief.setdefault("narrative_threads", [])
-    brief.setdefault("discovery_calls", [])
-
-    # Fill in meta fields if Gemini left them incomplete
-    brief.setdefault("meta", {})
-    brief["meta"].setdefault(
-        "sources_fetched", [s["name"] for s in pre_fetched if s.get("items")]
-    )
-    brief["meta"].setdefault(
-        "sources_failed", [s["name"] for s in pre_fetched if not s.get("items")]
-    )
-    brief["meta"].setdefault(
-        "total_items_ingested", sum(len(s.get("items", [])) for s in pre_fetched)
-    )
-    brief["meta"].setdefault("discovery_budget_used", 0)
-
-    return brief
 
 
 def main():
@@ -224,8 +144,8 @@ def main():
         tracker.summary()
         sys.exit(1)
 
-    # ── Phase 2: Gemini synthesis ─────────────────────────────────
-    log.info("Phase 2: Synthesising with Gemini…")
+    # ── Phase 2: Bedrock synthesis ────────────────────────────────
+    log.info("Phase 2: Synthesising with Bedrock…")
     t2 = time.time()
     threads = load_threads()
     log.debug("Loaded %d prior narrative threads", len(threads))
@@ -242,7 +162,11 @@ def main():
         if rag_context:
             log.debug("RAG: injecting %d chars of historical context", len(rag_context))
 
-    brief = run_synthesis(pre_fetched, threads, date, tracker, rag_context=rag_context)
+    user_content = build_user_prompt(date, pre_fetched, threads, rag_context=rag_context)
+    log.debug("Prompt size: %d chars", len(user_content))
+    raw = call_bedrock(user_content)
+    brief = parse_brief(raw, pre_fetched)
+    brief["meta"]["synthesis_provider"] = "bedrock"
 
     deep_count   = len(brief.get("deep_takes", []))
     bullet_count = len(brief.get("bullets", []))
@@ -253,6 +177,7 @@ def main():
     # ── Phase 3: Write output ─────────────────────────────────────
     log.info("Phase 3: Writing output…")
     t3 = time.time()
+    resolve_source_urls(brief, pre_fetched)
     save_output(brief, date)
     mark_items_seen(pre_fetched, seen)
     save_seen_items(seen)

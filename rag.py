@@ -33,6 +33,7 @@ def _load_vec_extension(conn: sqlite3.Connection) -> None:
 
 
 def init_db(db_path: Path = RAG_DB) -> sqlite3.Connection:
+    db_path = Path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(db_path))
     _load_vec_extension(conn)

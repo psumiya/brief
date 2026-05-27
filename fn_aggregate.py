@@ -1,28 +1,21 @@
 """
 Aggregate Lambda — invoked by Step Functions after all fetches complete.
-Reads source results from S3, synthesizes with Gemini (falling back to Bedrock
-Claude on any Gemini failure), publishes output.
+Reads source results from S3, synthesizes with Bedrock Claude, publishes output.
 """
 
 import json
 import os
 import time
-from datetime import datetime, timezone
 
 import boto3
 from botocore.exceptions import ClientError
 
 os.environ.setdefault("FORCE_REFRESH", "1")
 
-from tracker import TokenTracker
-from prompts import SYSTEM_PROMPT, build_user_prompt
+from prompts import build_user_prompt
 from tools import mark_items_seen
-
-from google import genai
-from google.genai import types as gtypes
-
-GEMINI_MODEL = "gemini-2.5-flash"
-BEDROCK_MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+from rag import build_rag_context_block, index_brief
+from synthesis import call_bedrock, parse_brief, resolve_source_urls
 
 
 def _log(obj: dict) -> None:
@@ -53,97 +46,34 @@ def _put_s3_json(bucket: str, key: str, data, cache_control: str = "no-cache, mu
     )
 
 
-def _strip_fences(raw: str) -> str:
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-    return raw.strip()
+_RAG_DB_TMP = "/tmp/rag.db"
+_RAG_DB_S3_KEY_TMPL = "{prefix}/state/rag.db"
 
 
-def _parse_brief(raw: str, pre_fetched: list) -> dict:
-    brief = json.loads(_strip_fences(raw))
-    brief["generated_at"] = datetime.now(timezone.utc).isoformat()
-    brief.setdefault("narrative_threads", [])
-    brief.setdefault("meta", {})
-    brief["meta"].setdefault("sources_fetched", [s["name"] for s in pre_fetched if s.get("items")])
-    brief["meta"].setdefault("sources_failed", [s["name"] for s in pre_fetched if not s.get("items")])
-    brief["meta"].setdefault("total_items_ingested", sum(len(s.get("items", [])) for s in pre_fetched))
-    brief["meta"].setdefault("discovery_budget_used", 0)
-    return brief
+def _download_rag_db(bucket: str, prefix: str) -> str | None:
+    key = _RAG_DB_S3_KEY_TMPL.format(prefix=prefix)
+    try:
+        _s3().download_file(bucket, key, _RAG_DB_TMP)
+        return _RAG_DB_TMP
+    except ClientError as e:
+        if e.response["Error"]["Code"] in ("NoSuchKey", "404", "403"):
+            return None
+        raise
 
 
-def _call_gemini(user_content: str, tracker: TokenTracker) -> str:
-    api_key = os.environ.get("GOOGLE_API_KEY")
-    if not api_key:
-        raise RuntimeError("GOOGLE_API_KEY not set")
-    client = genai.Client(api_key=api_key)
-    _log({"event": "gemini_request_sent", "input_chars": len(user_content)})
+def _upload_rag_db(bucket: str, prefix: str) -> None:
+    key = _RAG_DB_S3_KEY_TMPL.format(prefix=prefix)
+    _s3().upload_file(_RAG_DB_TMP, bucket, key)
+
+
+def _synthesize(pre_fetched: list, threads: list, date: str, rag_context: str = "") -> dict:
+    user_content = build_user_prompt(date, pre_fetched, threads, rag_context=rag_context)
     t0 = time.time()
-    response = client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=user_content,
-        config=gtypes.GenerateContentConfig(
-            system_instruction=SYSTEM_PROMPT,
-            response_mime_type="application/json",
-        ),
-    )
-    tracker.track_gemini("gemini: synthesis", response)
-    u = response.usage_metadata
-    _log({
-        "event": "gemini_response_received",
-        "duration_ms": int((time.time() - t0) * 1000),
-        "input_tokens": getattr(u, "prompt_token_count", 0),
-        "output_tokens": getattr(u, "candidates_token_count", 0),
-    })
-    return response.text.strip()
-
-
-def _call_bedrock(user_content: str) -> str:
-    _log({"event": "bedrock_request_sent", "input_chars": len(user_content)})
-    t0 = time.time()
-    response = boto3.client("bedrock-runtime").converse(
-        modelId=BEDROCK_MODEL_ID,
-        system=[{"text": SYSTEM_PROMPT}],
-        messages=[{"role": "user", "content": [{"text": user_content}]}],
-        inferenceConfig={"maxTokens": 8192},
-    )
-    usage = response.get("usage", {})
-    _log({
-        "event": "bedrock_response_received",
-        "duration_ms": int((time.time() - t0) * 1000),
-        "input_tokens": usage.get("inputTokens", 0),
-        "output_tokens": usage.get("outputTokens", 0),
-    })
-    return response["output"]["message"]["content"][0]["text"].strip()
-
-
-def _synthesize(pre_fetched: list, threads: list, date: str, tracker: TokenTracker) -> dict:
-    user_content = build_user_prompt(date, pre_fetched, threads)
-    raw = _call_bedrock(user_content)
-    brief = _parse_brief(raw, pre_fetched)
+    raw = call_bedrock(user_content)
+    _log({"event": "bedrock_response_received", "duration_ms": int((time.time() - t0) * 1000)})
+    brief = parse_brief(raw, pre_fetched)
     brief["meta"]["synthesis_provider"] = "bedrock"
     return brief
-
-
-def _resolve_source_urls(brief: dict, pre_fetched: list) -> None:
-    """
-    Replace source name strings in deep_takes with {name, url} objects.
-    URL is the first item URL from that source in pre_fetched, or null if none.
-    Mutates brief in place.
-    """
-    source_url: dict[str, str | None] = {
-        s["name"]: next((item["url"] for item in s.get("items", []) if item.get("url")), None)
-        for s in pre_fetched
-    }
-    for dt in brief.get("deep_takes", []):
-        raw = dt.get("sources", [])
-        dt["sources"] = [
-            {"name": s, "url": source_url.get(s)}
-            if isinstance(s, str)
-            else s
-            for s in raw
-        ]
 
 
 def handler(event, context):
@@ -188,9 +118,21 @@ def handler(event, context):
     threads = _load_s3_json(bucket, f"{prefix}/output/narrative_threads.json", [])
     seen_items = _load_s3_json(bucket, f"{prefix}/state/seen_items.json", {})
 
-    tracker = TokenTracker()
-    brief = _synthesize(pre_fetched, threads, date, tracker)
-    _resolve_source_urls(brief, pre_fetched)
+    rag_db = _download_rag_db(bucket, prefix)
+    rag_context = ""
+    if rag_db:
+        source_titles = [
+            item.get("title", "")
+            for src in pre_fetched
+            for item in src.get("items", [])
+            if item.get("title")
+        ][:20]
+        rag_context = build_rag_context_block(source_titles, db_path=rag_db)
+        if rag_context:
+            _log({"event": "rag_context_built", "run_id": run_id, "chars": len(rag_context)})
+
+    brief = _synthesize(pre_fetched, threads, date, rag_context=rag_context)
+    resolve_source_urls(brief, pre_fetched)
 
     _put_s3_json(bucket, f"{prefix}/output/brief-{date}.json", brief, cache_control="max-age=86400")
     _put_s3_json(bucket, f"{prefix}/output/latest.json", brief)
@@ -199,6 +141,11 @@ def handler(event, context):
 
     mark_items_seen(pre_fetched, seen_items)
     _put_s3_json(bucket, f"{prefix}/state/seen_items.json", seen_items)
+
+    n = index_brief(brief, date, db_path=rag_db or _RAG_DB_TMP)
+    if n:
+        _upload_rag_db(bucket, prefix)
+        _log({"event": "rag_indexed", "run_id": run_id, "chunks": n})
 
     dates = []
     for page in paginator.paginate(Bucket=bucket, Prefix=f"{prefix}/output/brief-"):
