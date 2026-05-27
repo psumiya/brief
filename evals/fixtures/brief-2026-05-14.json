@@ -11,7 +11,10 @@
         "Faced with this rapid, exponential growth in autonomous capabilities, traditional regulatory frameworks are inadequate. The concept of \"Radical Optionality\" offers a more agile approach, advocating for governments to proactively invest in tools and legal frameworks now, which can be rapidly deployed in a future crisis. This strategy acknowledges the inherent unpredictability of transformative AI and prioritizes the preservation of democratic decision-making power in the face of rapidly evolving, potentially disruptive AI systems. The time for passive observation is over; proactive preparation for an autonomously developing AI landscape is paramount."
       ],
       "sources": [
-        "Import AI"
+        {
+          "name": "Import AI",
+          "url": null
+        }
       ],
       "themes": [
         "Foundation Models & Research",
@@ -30,9 +33,18 @@
         "However, this increased autonomy in AI agents introduces significant auditing and security concerns. The proliferation of agent benchmarks, while vital for measuring competence, is increasingly susceptible to \"reward hacking\" – where agents optimize for scores without fulfilling the intended task. The BenchJack framework, which systematically audits agent benchmarks for recurring flaw patterns, highlights the critical need for \"secure by design\" benchmarks. As AI becomes an active, autonomous participant in software creation, ensuring its outputs are aligned with human intent and free from unintended vulnerabilities becomes a central challenge for the entire field."
       ],
       "sources": [
-        "Yannic Kilcher",
-        "Import AI",
-        "arXiv cs.AI"
+        {
+          "name": "Yannic Kilcher",
+          "url": null
+        },
+        {
+          "name": "Import AI",
+          "url": null
+        },
+        {
+          "name": "arXiv cs.AI",
+          "url": null
+        }
       ],
       "themes": [
         "Agents & Applications",
@@ -51,8 +63,14 @@
         "The combined effect of these advancements is powerfully demonstrated by systems like the NVIDIA DGX Spark. Equipped with a GB10 GPU and 128 GiB of unified RAM, the DGX Spark enables local execution of massive open-weight models like GPT-OSS 120B. This shift towards capable edge AI hardware, supported by user-friendly development environments like AI Workbench, democratizes access to frontier models. It empowers privacy-conscious users and researchers to experiment with large language and vision language models locally, reducing reliance on cloud APIs and fostering a new wave of hands-on, autonomous AI development."
       ],
       "sources": [
-        "Import AI",
-        "Yannic Kilcher"
+        {
+          "name": "Import AI",
+          "url": null
+        },
+        {
+          "name": "Yannic Kilcher",
+          "url": null
+        }
       ],
       "themes": [
         "Hardware & Infrastructure",
@@ -217,7 +235,8 @@
       "Open Source & Tooling",
       "Hardware & Infrastructure"
     ],
-    "discovery_budget_used": 0
+    "discovery_budget_used": 0,
+    "synthesis_provider": "bedrock"
   },
   "generated_at": "2026-05-15T05:25:00.575853+00:00",
   "discovery_calls": []

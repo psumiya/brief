@@ -267,7 +267,8 @@
       "Community & Discourse",
       "AI Governance & Policy"
     ],
-    "discovery_budget_used": 0
+    "discovery_budget_used": 0,
+    "synthesis_provider": "bedrock"
   },
   "generated_at": "2026-05-18T03:38:11.514686+00:00",
   "discovery_calls": []
