@@ -27,6 +27,13 @@ SOURCES = [
         "url": "https://huggingface.co/blog/feed.xml",
         "weight": 3,
     },
+    {
+        "id": "simon-willison",
+        "name": "Simon Willison",
+        "type": "rss",
+        "url": "https://simonwillison.net/atom/everything/",
+        "weight": 3,
+    },
 
     # ── YouTube Channels ───────────────────────────────────────────────────────
 
