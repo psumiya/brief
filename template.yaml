@@ -23,8 +23,8 @@ Parameters:
     Description: "Google Gemini API key (GOOGLE_API_KEY)"
   ScheduleExpression:
     Type: String
-    Default: "cron(0 13 * * ? *)"
-    Description: "EventBridge schedule — default 1pm UTC (9am ET)"
+    Default: "cron(0 5 * * ? *)"
+    Description: "EventBridge schedule — default 5am UTC (9pm PT)"
 
 Conditions:
   IsProd: !Equals [!Ref Stage, prod]
