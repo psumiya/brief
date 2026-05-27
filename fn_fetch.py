@@ -68,6 +68,7 @@ def handler(event, context):
     seen_data = _load_s3_json(bucket, f"{prefix}/state/seen_items.json", {})
     Path("/tmp").mkdir(exist_ok=True)
     Path("/tmp/.seen_items.json").write_text(json.dumps(seen_data))
+    seen = load_seen_items()
 
     tracker = TokenTracker()
     items = []
@@ -77,7 +78,7 @@ def handler(event, context):
         if msg_type == "FETCH_RSS":
             items = fetch_rss_source(source)
         elif msg_type == "FETCH_YOUTUBE":
-            items = fetch_youtube_source(source, tracker)
+            items = fetch_youtube_source(source, tracker, seen=seen)
         elif msg_type == "FETCH_ARXIV":
             items = fetch_arxiv_source(source)
         else:
@@ -88,7 +89,6 @@ def handler(event, context):
               "error": error_msg[:300]})
 
     source_with_items = {**source, "items": items}
-    seen = load_seen_items()
     filtered_list, skipped = filter_seen_items([source_with_items], seen)
     result = filtered_list[0]
     if error_msg:

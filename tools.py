@@ -307,7 +307,7 @@ def synthesize_youtube_video(video_id: str, tracker: TokenTracker, label: str, c
         return {"title": f"Video {video_id}", "summary": raw[:500], "url": url, "significance": "medium"}
 
 
-def fetch_youtube_source(source: dict, tracker: TokenTracker, client: genai.Client | None = None) -> list[dict]:
+def fetch_youtube_source(source: dict, tracker: TokenTracker, client: genai.Client | None = None, seen: dict | None = None) -> list[dict]:
     cached = load_cache(source["id"])
     if cached is not None:
         logger.info("  [cache] %s (%d items)", source["name"], len(cached))
@@ -333,6 +333,10 @@ def fetch_youtube_source(source: dict, tracker: TokenTracker, client: genai.Clie
             continue
         video_id = entry.get("yt_videoid") or _extract_video_id(entry.get("link", ""))
         if not video_id:
+            continue
+        url = f"https://www.youtube.com/watch?v={video_id}"
+        if seen and url in seen:
+            logger.debug("    skip (seen): %s", entry.get("title", "")[:60])
             continue
         label = f"gemini: {source['id']}/{video_id[:8]}"
         logger.info("    → Gemini: %s", entry.get("title", video_id)[:60])
