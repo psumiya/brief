@@ -38,6 +38,8 @@ s3_prefix     = "brief-sam-builds"
 [prod.deploy.parameters]
 confirm_changeset = false
 fail_on_empty_changeset = false
+# GoogleApiKey must be passed at deploy time:
+#   sam deploy --config-env prod --parameter-overrides "Stage=prod S3Bucket=algoclinic.com CloudFrontDistId=E35HO90YLKGBXV GoogleApiKey=$(aws ssm get-parameter --name /brief/GOOGLE_API_KEY --with-decryption --query Parameter.Value --output text)"
 parameter_overrides = [
     "Stage=prod",
     "S3Bucket=algoclinic.com",
