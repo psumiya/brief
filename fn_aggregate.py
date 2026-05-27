@@ -221,7 +221,7 @@ def handler(event, context):
             DistributionId=cf_dist_id,
             InvalidationBatch={
                 "Paths": {"Quantity": len(inv_paths), "Items": inv_paths},
-                "CallerReference": f"brief-{date}-{run_id[-8:]}",
+                "CallerReference": f"brief-{date}-{int(time.time())}",
             },
         )
         _log({"event": "cloudfront_invalidated", "run_id": run_id, "paths": inv_paths})

@@ -37,7 +37,7 @@ Globals:
       Variables:
         STAGE: !Ref Stage
         S3_BUCKET: !Ref S3Bucket
-        S3_PREFIX: !Sub "brief-${Stage}"
+        S3_PREFIX: !If [IsProd, "brief", !Sub "brief-${Stage}"]
         GOOGLE_API_KEY: !Ref GoogleApiKey
         CLOUDFRONT_DIST_ID: !Ref CloudFrontDistId
         FORCE_REFRESH: "1"
