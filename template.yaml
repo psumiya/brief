@@ -81,7 +81,7 @@ Resources:
       Handler: fn_fetch.handler
       CodeUri: ./
       MemorySize: 512
-      Timeout: 300
+      Timeout: 600
       Policies:
         - S3ReadPolicy:
             BucketName: !Ref S3Bucket
@@ -108,7 +108,10 @@ Resources:
               Action: cloudfront:CreateInvalidation
               Resource: "*"
             - Effect: Allow
-              Action: bedrock:InvokeModel
+              Action:
+                - bedrock:InvokeModel
+                - aws-marketplace:ViewSubscriptions
+                - aws-marketplace:Subscribe
               Resource: "*"
 
   # ── Step Functions state machine ─────────────────────────────────────────────
