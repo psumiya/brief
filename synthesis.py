@@ -15,19 +15,24 @@ log = logging.getLogger(__name__)
 
 def call_bedrock(user_content: str) -> str:
     log.info("Sending to Bedrock (%s)…", BEDROCK_MODEL_ID)
-    response = boto3.client("bedrock-runtime").converse(
+    response = boto3.client("bedrock-runtime").converse_stream(
         modelId=BEDROCK_MODEL_ID,
         system=[{"text": SYSTEM_PROMPT}],
         messages=[{"role": "user", "content": [{"text": user_content}]}],
         inferenceConfig={"maxTokens": 8192},
     )
-    usage = response.get("usage", {})
-    log.debug(
-        "Bedrock response: in=%s out=%s tokens",
-        usage.get("inputTokens", "?"),
-        usage.get("outputTokens", "?"),
-    )
-    return response["output"]["message"]["content"][0]["text"].strip()
+    chunks = []
+    for event in response["stream"]:
+        if "contentBlockDelta" in event:
+            chunks.append(event["contentBlockDelta"]["delta"].get("text", ""))
+        elif "metadata" in event:
+            usage = event["metadata"].get("usage", {})
+            log.debug(
+                "Bedrock response: in=%s out=%s tokens",
+                usage.get("inputTokens", "?"),
+                usage.get("outputTokens", "?"),
+            )
+    return "".join(chunks).strip()
 
 
 def parse_brief(raw: str, pre_fetched: list) -> dict:

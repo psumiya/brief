@@ -320,7 +320,8 @@ def fetch_youtube_source(source: dict, tracker: TokenTracker, client: genai.Clie
 
     feed = feedparser.parse(rss_url)
     if not feed.entries:
-        raise RuntimeError(f"No entries in YouTube RSS for channel {channel_id}")
+        logger.info("  [skip] %s — no recent videos in RSS feed", source["name"])
+        return []
 
     logger.debug("    %d videos in channel feed", len(feed.entries))
     max_videos = YOUTUBE_VIDEOS_BY_WEIGHT.get(source["weight"], 2)
