@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(gh pr *)",
+      "Bash(git stash *)",
+      "Bash(git checkout *)",
+      "Bash(git fetch *)",
+      "Bash(git rebase *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(aws ssm *)",
+      "Bash(aws lambda *)",
+      "Bash(aws stepfunctions *)",
+      "Bash(aws s3 *)",
+      "Bash(aws s3api *)",
+      "Bash(aws bedrock *)",
+      "Bash(aws cloudwatch *)",
+      "Bash(aws xray *)",
+      "Bash(sam build *)",
+      "Bash(sam deploy *)",
+      "Bash(python3 *)",
+      "Bash(python *)",
+      "Bash(.venv/bin/python *)",
+      "Bash(.venv/bin/python3 *)",
+      "Bash(.venv/bin/pytest *)",
+      "Bash(.venv/bin/pip install *)",
+      "Bash(python3 -m venv .venv)",
+      "Bash(python3 -m http.server *)",
+      "Bash(pkill -f \"http.server *\")",
+      "Bash(pip3 show *)",
+      "Bash(curl -s *)",
+      "Bash(curl -sI *)",
+      "Bash(curl -sL *)",
+      "Bash(echo *)",
+      "Read(//tmp/**)",
+      "WebSearch",
+      "Skill(update-config)"
+    ]
+  }
+}
