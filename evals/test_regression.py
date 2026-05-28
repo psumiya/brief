@@ -78,7 +78,7 @@ def test_deep_takes_pass_llm_judge(golden_brief):
         prompt = JUDGE_RUBRIC.format(
             headline=dt["headline"],
             deck=dt["deck"],
-            body="\n".join(dt["body"]),
+            body="\n".join(p["text"] if isinstance(p, dict) else p for p in dt["body"]),
             sources=_json.dumps(dt.get("sources", [])),
         )
         response = client.models.generate_content(

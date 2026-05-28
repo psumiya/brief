@@ -83,7 +83,10 @@ def _serialize(embedding: list[float]) -> bytes:
 def _brief_chunks(brief: dict, date: str) -> list[dict]:
     chunks = []
     for dt in brief.get("deep_takes", []):
-        body = " ".join(dt.get("body", []))
+        body = " ".join(
+            p["text"] if isinstance(p, dict) else p
+            for p in dt.get("body", [])
+        )
         if body.strip():
             chunks.append({
                 "chunk_type": "deep_take",
