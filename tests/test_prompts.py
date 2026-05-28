@@ -56,13 +56,28 @@ def test_build_user_prompt_item_with_content():
     assert "https://example.com" in prompt
 
 
-def test_build_user_prompt_content_truncated_at_800():
-    long_content = "X" * 900
-    items = [{"title": "T", "content": long_content}]
-    src = _make_source(items=items)
+def test_build_user_prompt_content_truncated_by_weight():
+    # CRITICAL (weight 5) → 2400 chars
+    items = [{"title": "T", "content": "X" * 2500}]
+    src = _make_source(weight=5, items=items)
     prompt = build_user_prompt("2026-05-17", [src], [])
-    assert "X" * 800 in prompt
+    assert "X" * 2400 in prompt
+    assert "X" * 2401 not in prompt
     assert "…" in prompt
+
+    # IMPORTANT (weight 3) → 1200 chars
+    items = [{"title": "T", "content": "Y" * 1300}]
+    src = _make_source(weight=3, items=items)
+    prompt = build_user_prompt("2026-05-17", [src], [])
+    assert "Y" * 1200 in prompt
+    assert "Y" * 1201 not in prompt
+
+    # BACKGROUND (weight 1) → 800 chars
+    items = [{"title": "T", "content": "Z" * 900}]
+    src = _make_source(weight=1, items=items)
+    prompt = build_user_prompt("2026-05-17", [src], [])
+    assert "Z" * 800 in prompt
+    assert "Z" * 801 not in prompt
 
 
 def test_build_user_prompt_item_with_abstract():
