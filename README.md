@@ -8,7 +8,7 @@ Supports two modes: a **local run** via `main.py` and a **serverless AWS pipelin
 
 ### Local mode
 
-1. **Fetch** — pulls recent items from configured sources (RSS, YouTube, arXiv)
+1. **Fetch** — pulls recent items from configured sources (RSS, YouTube, arXiv); YouTube videos are transcribed and summarized via Gemini 2.5 Flash
 2. **Synthesize** — sends content to Bedrock Claude Haiku with a weighted prompt; injects RAG context from prior briefs; produces bullets, deep-takes, and narrative threads
 3. **Store** — writes JSON output and indexes it into a SQLite vector DB (`output/rag.db`) for RAG context in future runs
 4. **Deploy** — uploads the static site and output JSON to S3, invalidates CloudFront
@@ -16,7 +16,7 @@ Supports two modes: a **local run** via `main.py` and a **serverless AWS pipelin
 ### Serverless pipeline (AWS)
 
 1. **Orchestrate** — `fn_orchestrator` Lambda starts a Step Functions execution; short-circuits if today's brief already exists
-2. **Fetch (parallel)** — Step Functions fans out to `fn_fetch` Lambda, one invocation per source (up to 10 concurrent); results written to S3
+2. **Fetch (parallel)** — Step Functions fans out to `fn_fetch` Lambda, one invocation per source (up to 10 concurrent); YouTube videos are transcribed and summarized via Gemini 2.5 Flash; results written to S3
 3. **Synthesize** — `fn_aggregate` Lambda reads all fetch results, pulls RAG context from `rag.db` stored in S3, and calls Bedrock Claude Haiku via the Converse Stream API
 4. **Publish** — aggregate uploads the brief JSON to S3, updates the rolling index, and invalidates CloudFront
 
@@ -122,7 +122,7 @@ See `.env.example`. Key variables:
 
 | Variable | Required for | Notes |
 |----------|-------------|-------|
-| `GOOGLE_API_KEY` | YouTube synthesis + RAG embeddings | Gemini used for video transcription and vector embeddings |
+| `GOOGLE_API_KEY` | YouTube fetch + RAG embeddings | Gemini 2.5 Flash transcribes/summarizes YouTube videos; `gemini-embedding-001` generates RAG vector embeddings |
 | `AWS_REGION` | Serverless pipeline | Bedrock and all AWS services |
 | `S3_BUCKET` | Deployment | Target bucket for static site |
 | `CLOUDFRONT_DISTRIBUTION_ID` | Deployment | For cache invalidation |
