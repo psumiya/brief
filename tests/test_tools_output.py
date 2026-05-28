@@ -8,7 +8,7 @@ def _minimal_brief(date="2026-05-17"):
     return {
         "date": date,
         "deep_takes": [{"headline": "Test", "deck": "Deck", "kicker": "Lead",
-                         "body": ["Para 1."], "sources": [], "themes": [], "stack_layer": "Applications"}],
+                         "body": [{"text": "Para 1."}], "sources": [], "themes": [], "stack_layer": "Applications"}],
         "bullets": [{"text": "Bullet.", "source": "Src", "theme": "Agents & Applications", "stack_layer": "Applications"}],
         "narrative_threads": [{"id": "t1", "title": "Thread 1", "status": "active", "first_seen": date,
                                 "last_active": date, "day_count": 1, "summary": "Summary."}],

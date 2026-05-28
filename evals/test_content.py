@@ -10,15 +10,17 @@ from evals.schema import (
 def test_deep_take_bodies_are_substantive(any_brief):
     for i, dt in enumerate(any_brief["deep_takes"]):
         for j, para in enumerate(dt["body"]):
-            assert len(para) >= BODY_MIN_CHARS, (
-                f"deep_takes[{i}].body[{j}] is only {len(para)} chars (min {BODY_MIN_CHARS})"
+            text = para["text"] if isinstance(para, dict) else para
+            assert len(text) >= BODY_MIN_CHARS, (
+                f"deep_takes[{i}].body[{j}] is only {len(text)} chars (min {BODY_MIN_CHARS})"
             )
 
 
 def test_no_forbidden_hedging_in_deep_takes(any_brief):
     for i, dt in enumerate(any_brief["deep_takes"]):
         for para in dt["body"]:
-            lower = para.lower()
+            text = para["text"] if isinstance(para, dict) else para
+            lower = text.lower()
             for phrase in FORBIDDEN_PHRASES:
                 assert phrase not in lower, (
                     f"deep_takes[{i}] contains forbidden phrase: {phrase!r}"

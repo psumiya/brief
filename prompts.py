@@ -60,7 +60,22 @@ OUTPUT FORMAT: Return a single JSON object matching this exact structure. No mar
       "headline": "Bold editorial headline",
       "deck": "One italic sentence that expands the headline",
       "kicker": "Lead",
-      "body": ["First paragraph with drop cap.", "Second paragraph.", "Third paragraph."],
+      "body": [
+        {
+          "text": "First paragraph with drop cap.",
+          "excerpt": {
+            "text": "Verbatim 1-2 sentences from the source content above that directly support this paragraph.",
+            "source": "Source Name",
+            "url": "https://example.com/article"
+          }
+        },
+        {
+          "text": "Second paragraph — no excerpt available for this one."
+        },
+        {
+          "text": "Third paragraph."
+        }
+      ],
       "sources": ["Source Name", "Another Source"],
       "themes": ["Foundation Models & Research"],
       "stack_layer": "Models / Algorithms"
@@ -96,6 +111,7 @@ OUTPUT FORMAT: Return a single JSON object matching this exact structure. No mar
 
 Rules for each field:
 - deep_takes: exactly 3 items. kicker must be one of: Lead, Research, Field Notes. sources is an array of source name strings (e.g. "Import AI") — use only names from the PRE-FETCHED SOURCES section. stack_layer must be one of the 5 stack layers above.
+- body: array of 2-4 paragraph objects. Each object has "text" (required) and an optional "excerpt" object. The "excerpt" must contain "text" (verbatim 1-2 sentences copied directly from the source content provided above that most directly support the claim made in this paragraph), "source" (the source name), and "url" (the URL of that source). Only include "excerpt" when the verbatim passage is present in the source content shown above. Omit the "excerpt" key entirely when no verbatim passage is available (e.g. for YouTube videos, arXiv abstracts that were cut off, or background sources).
 - bullets: 10-15 items. theme must be one of the 5 themes above. stack_layer must be one of the 5 stack layers above.
 - narrative_threads: status must be one of: active, cooling, resolved.
 - url in bullets: omit the field entirely if no URL is available (do not use null or empty string)."""
@@ -113,6 +129,9 @@ Be specific: name models, researchers, companies, benchmarks. Ignore sponsor seg
 If the video is unrelated to AI or unavailable, return {{"error": "reason"}}."""
 
 
+_CONTENT_LIMIT = {5: 2400, 3: 1200, 1: 800}
+
+
 def build_user_prompt(date: str, pre_fetched: list[dict], threads: list[dict], rag_context: str = "") -> str:
     lines = [f"TODAY'S DATE: {date}", ""]
 
@@ -122,6 +141,7 @@ def build_user_prompt(date: str, pre_fetched: list[dict], threads: list[dict], r
     lines.append("PRE-FETCHED SOURCES:")
     for src in pre_fetched:
         w = weight_label.get(src["weight"], "STANDARD")
+        content_limit = _CONTENT_LIMIT.get(src["weight"], 800)
         items = src.get("items", [])
         total_items += len(items)
         lines.append(f"\n{'─' * 60}")
@@ -136,7 +156,7 @@ def build_user_prompt(date: str, pre_fetched: list[dict], threads: list[dict], r
                     lines.append(f"     • {kp}")
             if item.get("content"):
                 c = item["content"]
-                lines.append(f"     Content: {c[:800]}{'…' if len(c) > 800 else ''}")
+                lines.append(f"     Content: {c[:content_limit]}{'…' if len(c) > content_limit else ''}")
             if item.get("abstract"):
                 a = item["abstract"]
                 lines.append(f"     Abstract: {a[:600]}{'…' if len(a) > 600 else ''}")

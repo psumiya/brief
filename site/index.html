@@ -368,6 +368,29 @@
   .src-link{ color:var(--text); text-decoration:none; }
   .src-link:hover{ color:var(--accent-ink); text-decoration:underline; }
 
+  /* ---------- Deep take excerpt ---------- */
+  .deep-excerpt{
+    margin:0 0 12px;
+    padding:9px 13px;
+    border-left:2px solid var(--accent);
+    background:var(--paper-2);
+  }
+  .deep-excerpt-text{
+    font-family:var(--serif);
+    font-style:italic;
+    font-size:13px;
+    line-height:1.5;
+    color:var(--text-mute);
+    margin:0 0 4px;
+  }
+  .deep-excerpt-cite{
+    font-size:10px;
+    color:var(--text-dim);
+    font-style:normal;
+  }
+  .deep-excerpt-cite a{ color:inherit; text-decoration:none; }
+  .deep-excerpt-cite a:hover{ color:var(--accent-ink); text-decoration:underline; }
+
   /* ---------- Theme tag ---------- */
   .tag{
     display:inline-flex; align-items:center;
@@ -609,10 +632,11 @@ function dateToIso(d) {
 
 function transformBrief(json) {
   const deepTakes = (json.deep_takes || []).map((dt, i) => {
+    // Normalise body to array of {text, excerpt?} objects; handle legacy string arrays
     const paragraphs = Array.isArray(dt.body)
-      ? dt.body
-      : (dt.body || '').split(/\n\n+/).filter(Boolean);
-    const wordCount = paragraphs.join(' ').split(/\s+/).length;
+      ? dt.body.map(p => typeof p === 'string' ? { text: p } : p)
+      : (dt.body || '').split(/\n\n+/).filter(Boolean).map(p => ({ text: p }));
+    const wordCount = paragraphs.map(p => p.text).join(' ').split(/\s+/).length;
     // Normalise sources to [{name, url}] regardless of whether JSON has strings or objects
     const sources = (dt.sources || []).map(s =>
       typeof s === 'string' ? { name: s, url: null } : { name: s.name || s, url: s.url || null }
@@ -803,7 +827,19 @@ function DeepTake({ item, index }) {
       </header>
       <div className="deep-body">
         {item.body.map((p, i) => (
-          <p key={i} className={i === 0 ? 'has-dropcap' : ''}>{p}</p>
+          <React.Fragment key={i}>
+            <p className={i === 0 ? 'has-dropcap' : ''}>{p.text}</p>
+            {p.excerpt && (
+              <blockquote className="deep-excerpt">
+                <p className="deep-excerpt-text">"{p.excerpt.text}"</p>
+                <cite className="deep-excerpt-cite mono">
+                  {p.excerpt.url
+                    ? <a href={p.excerpt.url} target="_blank" rel="noopener noreferrer">{p.excerpt.source}</a>
+                    : p.excerpt.source}
+                </cite>
+              </blockquote>
+            )}
+          </React.Fragment>
         ))}
       </div>
       <footer className="deep-foot">

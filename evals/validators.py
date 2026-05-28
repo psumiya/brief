@@ -24,7 +24,18 @@ def assert_deep_take(dt: dict, idx: int) -> None:
     assert dt.get("kicker") in VALID_KICKERS, f"{prefix}.kicker {dt.get('kicker')!r} not in {VALID_KICKERS}"
     assert isinstance(dt.get("body"), list) and dt["body"], f"{prefix}.body must be non-empty list"
     for j, para in enumerate(dt["body"]):
-        assert isinstance(para, str) and para, f"{prefix}.body[{j}] must be non-empty string"
+        assert isinstance(para, dict), f"{prefix}.body[{j}] must be an object"
+        assert isinstance(para.get("text"), str) and para["text"], f"{prefix}.body[{j}].text must be non-empty string"
+        if "excerpt" in para:
+            exc = para["excerpt"]
+            assert isinstance(exc, dict), f"{prefix}.body[{j}].excerpt must be an object"
+            assert isinstance(exc.get("text"), str) and exc["text"], \
+                f"{prefix}.body[{j}].excerpt.text must be non-empty string"
+            assert isinstance(exc.get("source"), str) and exc["source"], \
+                f"{prefix}.body[{j}].excerpt.source must be non-empty string"
+            if "url" in exc:
+                assert exc["url"] is None or str(exc["url"]).startswith("http"), \
+                    f"{prefix}.body[{j}].excerpt.url must start with http or be null"
     assert isinstance(dt.get("sources"), list), f"{prefix}.sources must be a list"
     for j, src in enumerate(dt["sources"]):
         assert isinstance(src, dict) and src.get("name"), \
