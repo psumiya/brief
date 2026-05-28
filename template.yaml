@@ -112,6 +112,7 @@ Resources:
             - Effect: Allow
               Action:
                 - bedrock:InvokeModel
+                - bedrock:InvokeModelWithResponseStream
                 - aws-marketplace:ViewSubscriptions
                 - aws-marketplace:Subscribe
               Resource: "*"
