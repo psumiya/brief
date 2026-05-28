@@ -17,7 +17,7 @@ Supports two modes: a **local run** via `main.py` and a **serverless AWS pipelin
 
 1. **Orchestrate** — `fn_orchestrator` Lambda starts a Step Functions execution; short-circuits if today's brief already exists
 2. **Fetch (parallel)** — Step Functions fans out to `fn_fetch` Lambda, one invocation per source (up to 10 concurrent); results written to S3
-3. **Synthesize** — `fn_aggregate` Lambda reads all fetch results, pulls RAG context from `rag.db` stored in S3, and calls Bedrock Claude Haiku via the Converse API
+3. **Synthesize** — `fn_aggregate` Lambda reads all fetch results, pulls RAG context from `rag.db` stored in S3, and calls Bedrock Claude Haiku via the Converse Stream API
 4. **Publish** — aggregate uploads the brief JSON to S3, updates the rolling index, and invalidates CloudFront
 
 EventBridge triggers the pipeline daily at 5am UTC (9pm PT) in prod.
