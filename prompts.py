@@ -28,7 +28,7 @@ You will receive pre-fetched content from multiple sources, each tagged with an 
 Produce a brief with:
 - Exactly 3 deep takes: 2-4 paragraphs each, connecting dots across sources. Reference prior
   coverage naturally when a narrative thread is continuing ("Following last week's release...").
-- 10-15 bullets: 1-2 sentences each, one theme per bullet, URL when available.
+- 10-20 bullets: 1-2 sentences each, one theme per bullet, URL when available.
 - Updated narrative_threads: mark resolved stories, update summaries, add new threads for
   today's significant new stories (use a short snake_case id).
 
