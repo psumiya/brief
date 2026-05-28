@@ -65,6 +65,13 @@ SOURCES = [
         "channel_id": "UCNJ1Ymd5yFuUPtn21xtRbbw",
         "weight": 3,
     },
+    {
+        "id": "claude-official",
+        "name": "Claude (Official)",
+        "type": "youtube",
+        "channel_id": "UCV03SRZXJEz-hchIAogeJOg",
+        "weight": 1,
+    },
 
     # ── Podcasts (on YouTube) ──────────────────────────────────────────────────
 
