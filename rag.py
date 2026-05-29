@@ -8,8 +8,15 @@ Usage:
 
 import json
 import os
-import sqlite3
 import struct
+
+# Lambda's stock python sqlite3 is built without extension loading, which
+# sqlite-vec needs. sqlean.py ships its own SQLite with it enabled (and has
+# arm64 wheels); fall back to stdlib sqlite3 locally (macOS supports it).
+try:
+    import sqlean as sqlite3
+except ImportError:
+    import sqlite3
 from pathlib import Path
 from typing import Optional
 
