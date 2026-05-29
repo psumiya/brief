@@ -22,6 +22,7 @@ parameter_overrides = [
     "Stage=dev",
     "S3Bucket=algoclinic.com",
     "CloudFrontDistId=NONE",
+    "ScheduleExpression=\"cron(0 5 * * ? *)\"",
 ]
 
 # ── Prod ──────────────────────────────────────────────────────────────────────
@@ -40,8 +41,12 @@ confirm_changeset = false
 fail_on_empty_changeset = false
 # GoogleApiKey must be passed at deploy time:
 #   sam deploy --config-env prod --parameter-overrides "Stage=prod S3Bucket=algoclinic.com CloudFrontDistId=E35HO90YLKGBXV GoogleApiKey=$(aws ssm get-parameter --name /brief/GOOGLE_API_KEY --with-decryption --query Parameter.Value --output text)"
+# ScheduleExpression is pinned here (not left to the template default) so every
+# deploy overwrites any stale value stored on the stack. EventBridge cron is
+# UTC-only with no DST handling: cron(0 5) = 9pm PST (winter) / 10pm PDT (summer).
 parameter_overrides = [
     "Stage=prod",
     "S3Bucket=algoclinic.com",
     "CloudFrontDistId=E35HO90YLKGBXV",
+    "ScheduleExpression=\"cron(0 5 * * ? *)\"",
 ]
