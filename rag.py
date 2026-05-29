@@ -22,14 +22,21 @@ TOP_K = 5
 
 # ── DB setup ───────────────────────────────────────────────────────────────────
 
+def _load_vec_extension(conn: sqlite3.Connection) -> None:
+    try:
+        import sqlite_vec
+        conn.enable_load_extension(True)
+        sqlite_vec.load(conn)
+        conn.enable_load_extension(False)
+    except (ImportError, AttributeError) as e:
+        raise RuntimeError(f"sqlite-vec not available: {e}") from e
+
+
 def init_db(db_path: Path = RAG_DB) -> sqlite3.Connection:
     db_path = Path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        import sqlite_vec
-        conn = sqlite_vec.connect(str(db_path))
-    except ImportError as e:
-        raise RuntimeError(f"sqlite-vec not available: {e}") from e
+    conn = sqlite3.connect(str(db_path))
+    _load_vec_extension(conn)
     conn.executescript(f"""
         CREATE TABLE IF NOT EXISTS chunks (
             id        INTEGER PRIMARY KEY AUTOINCREMENT,
