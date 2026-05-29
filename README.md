@@ -39,7 +39,7 @@ No AWS, no Bedrock, and no `deploy.py` step. See [Adding a brief type](#adding-a
 3. **Synthesize** — `fn_aggregate` Lambda reads all fetch results, pulls RAG context from `rag.db` stored in S3, and calls Bedrock Claude Haiku via the Converse Stream API
 4. **Publish** — aggregate uploads the brief JSON to S3, updates the rolling index, and invalidates CloudFront
 
-EventBridge triggers the pipeline daily at 5am UTC (9pm PT) in prod.
+EventBridge triggers the pipeline daily at 5am UTC in prod (`cron(0 5 * * ? *)`). EventBridge cron has no DST handling, so this is 9pm PST in winter and 10pm PDT in summer.
 
 ## Setup
 
