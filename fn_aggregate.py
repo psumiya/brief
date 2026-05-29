@@ -15,7 +15,7 @@ os.environ.setdefault("FORCE_REFRESH", "1")
 from pipeline import build_user_prompt
 from tools import mark_items_seen
 from rag import build_rag_context_block, index_brief
-from synthesis import call_bedrock, parse_brief, resolve_source_urls
+from synthesis import call_bedrock, resolve_source_urls, synthesize_with_retry
 
 
 def _log(obj: dict) -> None:
@@ -69,9 +69,8 @@ def _upload_rag_db(bucket: str, prefix: str) -> None:
 def _synthesize(pre_fetched: list, threads: list, date: str, rag_context: str = "") -> dict:
     user_content = build_user_prompt(date, pre_fetched, threads, rag_context=rag_context)
     t0 = time.time()
-    raw = call_bedrock(user_content)
+    brief = synthesize_with_retry(lambda: call_bedrock(user_content), pre_fetched)
     _log({"event": "bedrock_response_received", "duration_ms": int((time.time() - t0) * 1000)})
-    brief = parse_brief(raw, pre_fetched)
     brief["meta"]["synthesis_provider"] = "bedrock"
     return brief
 

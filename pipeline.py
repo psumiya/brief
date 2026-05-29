@@ -6,7 +6,7 @@ from pathlib import Path
 
 from config import BriefConfig
 from llm import LLMAdapter
-from synthesis import parse_brief, resolve_source_urls
+from synthesis import resolve_source_urls, synthesize_with_retry
 from tools import fetch_all_sources, filter_seen_items, mark_items_seen
 from tracker import TokenTracker
 
@@ -131,8 +131,8 @@ def synthesize(
     user_content = build_user_prompt(date, pre_fetched, threads, rag_context=rag_context)
     log.debug("Prompt size: %d chars", len(user_content))
 
-    raw = adapter.complete(config.system_prompt, user_content)
-    brief = parse_brief(raw, pre_fetched)
+    brief = synthesize_with_retry(
+        lambda: adapter.complete(config.system_prompt, user_content), pre_fetched)
     brief["meta"]["synthesis_provider"] = type(adapter).__name__.replace("Adapter", "").lower()
     resolve_source_urls(brief, pre_fetched)
     return brief
