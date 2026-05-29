@@ -1,0 +1,11 @@
+Watch this video and return a JSON object (raw JSON only, no markdown):
+{{
+  "title": "the video title",
+  "summary": "3-4 sentences: main topic, key argument or finding, why it matters to the AI community",
+  "key_points": ["2-4 specific claims, findings, or statements — not generic descriptions"],
+  "significance": "high or medium or low",
+  "url": "{url}"
+}}
+
+Be specific: name models, researchers, companies, benchmarks. Ignore sponsor segments and introductions.
+If the video is unrelated to AI or unavailable, return {{"error": "reason"}}.
