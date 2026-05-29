@@ -52,7 +52,7 @@ def parse_args():
     p.add_argument("--source", "--sources", dest="sources",
                    help="Comma-separated source IDs to use (default: all)")
     p.add_argument("--provider", default=None,
-                   help="LLM provider: auto, anthropic, gemini (default: auto-detect from env)")
+                   help="LLM provider: auto, anthropic, gemini, bedrock (default: auto-detect from env)")
     p.add_argument("--model", default=None, help="Model override for the chosen provider")
     p.add_argument("--no-rag", action="store_true", help="Disable RAG historical context")
     p.add_argument("--fetch-only", action="store_true",
@@ -159,4 +159,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except (ValueError, RuntimeError) as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+    except KeyboardInterrupt:
+        print("\nInterrupted.", file=sys.stderr)
+        sys.exit(130)
