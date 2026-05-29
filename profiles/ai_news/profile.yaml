@@ -1,0 +1,10 @@
+name: "AI Intelligence Brief"
+sources: default  # uses sources.py SOURCES list
+prompts:
+  system_file: prompts/system.txt
+  youtube_file: prompts/youtube.txt
+output:
+  title: "AI Intelligence Brief"
+llm:
+  provider: auto   # auto | anthropic | gemini | bedrock
+  model: null      # null = provider default

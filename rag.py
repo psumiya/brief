@@ -8,8 +8,15 @@ Usage:
 
 import json
 import os
-import sqlite3
 import struct
+
+# Lambda's stock python sqlite3 is built without extension loading, which
+# sqlite-vec needs. sqlean.py ships its own SQLite with it enabled (and has
+# arm64 wheels); fall back to stdlib sqlite3 locally (macOS supports it).
+try:
+    import sqlean as sqlite3
+except ImportError:
+    import sqlite3
 from pathlib import Path
 from typing import Optional
 
@@ -22,14 +29,21 @@ TOP_K = 5
 
 # ── DB setup ───────────────────────────────────────────────────────────────────
 
+def _load_vec_extension(conn: sqlite3.Connection) -> None:
+    try:
+        import sqlite_vec
+        conn.enable_load_extension(True)
+        sqlite_vec.load(conn)
+        conn.enable_load_extension(False)
+    except (ImportError, AttributeError) as e:
+        raise RuntimeError(f"sqlite-vec not available: {e}") from e
+
+
 def init_db(db_path: Path = RAG_DB) -> sqlite3.Connection:
     db_path = Path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        import sqlite_vec
-        conn = sqlite_vec.connect(str(db_path))
-    except ImportError as e:
-        raise RuntimeError(f"sqlite-vec not available: {e}") from e
+    conn = sqlite3.connect(str(db_path))
+    _load_vec_extension(conn)
     conn.executescript(f"""
         CREATE TABLE IF NOT EXISTS chunks (
             id        INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -135,6 +149,7 @@ def index_brief(brief: dict, date: str, db_path: Path = RAG_DB, client=None) -> 
 # ── Retrieval ──────────────────────────────────────────────────────────────────
 
 def retrieve_context(query_texts: list[str], db_path: Path = RAG_DB, top_k: int = TOP_K, client=None) -> list[dict]:
+    db_path = Path(db_path)
     if not db_path.exists():
         return []
 

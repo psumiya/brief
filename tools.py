@@ -20,7 +20,10 @@ from google import genai
 from google.genai import types as gtypes
 
 from tracker import TokenTracker
-from prompts import YOUTUBE_SYNTHESIS_PROMPT
+
+YOUTUBE_SYNTHESIS_PROMPT = (
+    Path(__file__).parent / "profiles" / "ai_news" / "prompts" / "youtube.txt"
+).read_text(encoding="utf-8")
 
 CACHE_DIR = Path("output/.cache")
 OUTPUT_DIR = Path("output")

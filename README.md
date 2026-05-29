@@ -1,12 +1,31 @@
 # brief
 
-A daily AI intelligence digest generator. Fetches content from RSS feeds and YouTube channels, synthesizes it with an LLM, and publishes a structured brief to a static site on S3/CloudFront.
+A daily AI intelligence digest generator. Fetches content from RSS feeds and YouTube channels, synthesizes it with an LLM, and produces a structured brief.
 
-Supports two modes: a **local run** via `main.py` and a **serverless AWS pipeline** (Step Functions + Bedrock) that runs on a schedule. Both use Bedrock Claude Haiku for synthesis and produce identical output format.
+## Which mode do I use?
+
+There are three ways to run it:
+
+| Mode | Entry point | LLM | AWS needed? | Output | Use when |
+|------|-------------|-----|-------------|--------|----------|
+| **Local-first** | `run_local.py` | Anthropic / Gemini / Bedrock (auto-detected) | No | Self-contained `output/<profile>/brief-DATE.html` you open in a browser | You just want a brief on your machine, or are building a new brief type |
+| **Local (cloud format)** | `main.py` | Bedrock Claude Haiku | Yes (Bedrock; S3/CloudFront to deploy) | `output/latest.json` + optional S3/CloudFront publish | You're running the production format locally or deploying by hand |
+| **Serverless** | `fn_orchestrator` Lambda | Bedrock Claude Haiku | Yes (full stack) | Brief JSON published to S3/CloudFront on a schedule | Hands-off daily runs in AWS |
+
+The **local-first** mode (`run_local.py`) needs no AWS — it picks a provider from whichever API key is set (`ANTHROPIC_API_KEY` or `GOOGLE_API_KEY`) and writes a standalone HTML file. The other two modes use Bedrock and share an identical JSON output format.
 
 ## How it works
 
-### Local mode
+### Local-first mode (`run_local.py`)
+
+1. **Load profile** — reads a profile directory (default `profiles/ai_news`) for its sources, prompts, output title, and LLM provider
+2. **Fetch** — pulls recent items from the profile's sources (RSS, YouTube, arXiv); YouTube videos are transcribed and summarized via Gemini 2.5 Flash
+3. **Synthesize** — picks an LLM provider (Anthropic, Gemini, or Bedrock — auto-detected from your API keys) and produces bullets, deep-takes, and narrative threads; injects RAG context from prior runs
+4. **Store & render** — persists state under `output/<profile_id>/` (so profiles don't collide) and writes a self-contained `brief-DATE.html` (and `latest.html`) with no JS, no server, and no external requests — open it directly in a browser
+
+No AWS, no Bedrock, and no `deploy.py` step. See [Adding a brief type](#adding-a-new-brief-type) to create your own profile.
+
+### Local mode (`main.py`, cloud format)
 
 1. **Fetch** — pulls recent items from configured sources (RSS, YouTube, arXiv); YouTube videos are transcribed and summarized via Gemini 2.5 Flash
 2. **Synthesize** — sends content to Bedrock Claude Haiku with a weighted prompt; injects RAG context from prior briefs; produces bullets, deep-takes, and narrative threads
@@ -32,8 +51,12 @@ source .venv/bin/activate
 pip install -r requirements.txt
 
 cp .env.example .env
-# fill in GOOGLE_API_KEY (required), and S3/CloudFront vars if deploying
+# fill in GOOGLE_API_KEY (required — YouTube fetch + RAG embeddings)
+# for run_local.py synthesis, set ANTHROPIC_API_KEY and/or GOOGLE_API_KEY
+# add S3/CloudFront vars only if deploying the cloud-format pipeline
 ```
+
+This covers all three modes; `requirements.txt` includes the `anthropic` and `pyyaml` deps the local-first pipeline needs.
 
 ### Serverless (AWS SAM)
 
@@ -51,7 +74,31 @@ Requires the `aws` CLI configured with IAM permissions for Lambda, Step Function
 
 ## Usage
 
-### Local
+### Local-first (`run_local.py`, no AWS)
+
+```bash
+# Default AI-news brief — auto-detects ANTHROPIC_API_KEY or GOOGLE_API_KEY
+python run_local.py
+
+# Single source test
+python run_local.py --source simon-willison
+
+# Force a specific provider (auto | anthropic | gemini | bedrock)
+python run_local.py --provider anthropic
+
+# Run a custom profile
+python run_local.py --profile profiles/cloud
+
+# Fetch and inspect without synthesizing
+python run_local.py --fetch-only
+
+# Skip RAG historical context
+python run_local.py --no-rag
+```
+
+Output is written to `output/<profile_id>/brief-DATE.html` and `latest.html` — self-contained, open directly in a browser (no `serve.py` needed). Run `python run_local.py --help` for all flags.
+
+### Local (cloud format, `main.py`)
 
 ```bash
 # Full run (fetches sources, synthesizes, writes output)
@@ -116,13 +163,39 @@ Configured in `sources.py`. Each source has an `id`, `type` (`rss`, `youtube`, o
 | 3 | Important — included if relevant |
 | 1 | Background — only if genuinely noteworthy |
 
+## Adding a new brief type
+
+The local-first pipeline (`run_local.py`) is driven by **profiles** — a directory with a `profile.yaml` and prompt files. No Python required:
+
+```yaml
+# profiles/cloud/profile.yaml
+name: "Cloud Brief"
+sources:                         # or `sources: default` to reuse sources.py
+  - { id: aws-blog, name: "AWS Blog", type: rss, url: "https://...", weight: 5 }
+prompts:
+  system_file: prompts/system.txt    # relative to the profile dir
+  youtube_file: prompts/youtube.txt  # optional
+output:
+  title: "Cloud Intelligence Brief"
+llm:
+  provider: auto                 # auto | anthropic | gemini | bedrock
+  model: null                    # null = provider default
+```
+
+```bash
+python run_local.py --profile profiles/cloud
+```
+
+State and output land in `output/cloud/`, isolated from other profiles. The default `profiles/ai_news` profile uses `sources: default`, so it shares the source list in `sources.py`.
+
 ## Environment variables
 
 See `.env.example`. Key variables:
 
 | Variable | Required for | Notes |
 |----------|-------------|-------|
-| `GOOGLE_API_KEY` | YouTube fetch + RAG embeddings | Gemini 2.5 Flash transcribes/summarizes YouTube videos; `gemini-embedding-001` generates RAG vector embeddings |
+| `GOOGLE_API_KEY` | YouTube fetch + RAG embeddings; Gemini synthesis | Gemini 2.5 Flash transcribes/summarizes YouTube videos and `gemini-embedding-001` generates RAG vectors; also used as a synthesis provider by `run_local.py` |
+| `ANTHROPIC_API_KEY` | `run_local.py` synthesis (Anthropic) | Optional; if set, `run_local.py` auto-selects the Anthropic provider over Gemini. Not used by `main.py` or the serverless pipeline (those use Bedrock) |
 | `AWS_REGION` | Serverless pipeline | Bedrock and all AWS services |
 | `S3_BUCKET` | Deployment | Target bucket for static site |
 | `CLOUDFRONT_DISTRIBUTION_ID` | Deployment | For cache invalidation |

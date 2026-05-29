@@ -4,9 +4,13 @@ import json
 import logging
 from datetime import datetime, timezone
 
+from pathlib import Path
+
 import boto3
 
-from prompts import SYSTEM_PROMPT
+SYSTEM_PROMPT = (
+    Path(__file__).parent / "profiles" / "ai_news" / "prompts" / "system.txt"
+).read_text(encoding="utf-8")
 
 BEDROCK_MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
@@ -35,13 +39,41 @@ def call_bedrock(user_content: str) -> str:
     return "".join(chunks).strip()
 
 
+def _loads_lenient(raw: str) -> dict:
+    """Parse LLM JSON output, tolerating code fences, surrounding prose, and
+    literal control characters in string values (strict=False)."""
+    s = raw.strip()
+    if s.startswith("```"):
+        s = s.split("```")[1]
+        if s.startswith("json"):
+            s = s[4:]
+        s = s.strip()
+    try:
+        return json.loads(s, strict=False)
+    except json.JSONDecodeError:
+        # Fall back to the outermost {...} in case the model wrapped it in prose.
+        start, end = s.find("{"), s.rfind("}")
+        if 0 <= start < end:
+            return json.loads(s[start:end + 1], strict=False)
+        raise
+
+
+def synthesize_with_retry(generate, pre_fetched: list, attempts: int = 3) -> dict:
+    """Call generate() (returns raw LLM text) and parse it, retrying on malformed
+    JSON. Bedrock/Claude run at default temperature, so a fresh generation almost
+    always fixes a one-off bad escape."""
+    last_err: json.JSONDecodeError | None = None
+    for i in range(attempts):
+        try:
+            return parse_brief(generate(), pre_fetched)
+        except json.JSONDecodeError as e:
+            last_err = e
+            log.warning("Brief JSON parse failed (attempt %d/%d): %s", i + 1, attempts, e)
+    raise last_err
+
+
 def parse_brief(raw: str, pre_fetched: list) -> dict:
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-        raw = raw.strip()
-    brief = json.loads(raw)
+    brief = _loads_lenient(raw)
     brief["generated_at"] = datetime.now(timezone.utc).isoformat()
     brief.setdefault("narrative_threads", [])
     brief.setdefault("discovery_calls", [])
