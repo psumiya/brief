@@ -4,9 +4,13 @@ import json
 import logging
 from datetime import datetime, timezone
 
+from pathlib import Path
+
 import boto3
 
-from prompts import SYSTEM_PROMPT
+SYSTEM_PROMPT = (
+    Path(__file__).parent / "profiles" / "ai_news" / "prompts" / "system.txt"
+).read_text(encoding="utf-8")
 
 BEDROCK_MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 

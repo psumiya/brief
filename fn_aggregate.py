@@ -12,7 +12,7 @@ from botocore.exceptions import ClientError
 
 os.environ.setdefault("FORCE_REFRESH", "1")
 
-from prompts import build_user_prompt
+from pipeline import build_user_prompt
 from tools import mark_items_seen
 from rag import build_rag_context_block, index_brief
 from synthesis import call_bedrock, parse_brief, resolve_source_urls

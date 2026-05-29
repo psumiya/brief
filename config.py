@@ -66,11 +66,12 @@ class BriefConfig:
         )
 
 
+_AI_NEWS_PROMPTS = Path(__file__).parent / "profiles" / "ai_news" / "prompts"
+
+
 def _default_system_prompt() -> str:
-    from prompts import SYSTEM_PROMPT
-    return SYSTEM_PROMPT
+    return (_AI_NEWS_PROMPTS / "system.txt").read_text(encoding="utf-8")
 
 
 def _default_youtube_prompt() -> str:
-    from prompts import YOUTUBE_SYNTHESIS_PROMPT
-    return YOUTUBE_SYNTHESIS_PROMPT
+    return (_AI_NEWS_PROMPTS / "youtube.txt").read_text(encoding="utf-8")

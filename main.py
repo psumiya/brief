@@ -25,7 +25,7 @@ from sources import SOURCES
 from tracker import TokenTracker
 from tools import fetch_all_sources, load_threads, save_output, load_cache, \
     load_seen_items, save_seen_items, filter_seen_items, mark_items_seen
-from prompts import build_user_prompt
+from pipeline import build_user_prompt
 from synthesis import call_bedrock, parse_brief, resolve_source_urls
 try:
     from rag import index_brief, build_rag_context_block, RAG_DB

@@ -1,6 +1,12 @@
 import json
+from pathlib import Path
 import pytest
-from prompts import build_user_prompt, THEMES, STACK_LAYERS, YOUTUBE_SYNTHESIS_PROMPT
+from pipeline import build_user_prompt
+from evals.schema import VALID_THEMES as THEMES, VALID_STACK_LAYERS as STACK_LAYERS
+
+YOUTUBE_SYNTHESIS_PROMPT = (
+    Path(__file__).parent.parent / "profiles" / "ai_news" / "prompts" / "youtube.txt"
+).read_text(encoding="utf-8")
 
 
 def _make_source(weight=5, items=None, type_="rss"):
