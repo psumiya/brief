@@ -12,7 +12,7 @@ There are three ways to run it:
 | **Local (cloud format)** | `main.py` | Bedrock Claude Haiku | Yes (Bedrock; S3/CloudFront to deploy) | `output/latest.json` + optional S3/CloudFront publish | You're running the production format locally or deploying by hand |
 | **Serverless** | `fn_orchestrator` Lambda | Bedrock Claude Haiku | Yes (full stack) | Brief JSON published to S3/CloudFront on a schedule | Hands-off daily runs in AWS |
 
-The **local-first** mode (`run_local.py`) is new and needs no AWS — it picks a provider from whichever API key is set (`ANTHROPIC_API_KEY` or `GOOGLE_API_KEY`) and writes a standalone HTML file. The other two modes use Bedrock and share an identical JSON output format.
+The **local-first** mode (`run_local.py`) needs no AWS — it picks a provider from whichever API key is set (`ANTHROPIC_API_KEY` or `GOOGLE_API_KEY`) and writes a standalone HTML file. The other two modes use Bedrock and share an identical JSON output format.
 
 ## How it works
 
