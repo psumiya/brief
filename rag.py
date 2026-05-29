@@ -149,6 +149,7 @@ def index_brief(brief: dict, date: str, db_path: Path = RAG_DB, client=None) -> 
 # ── Retrieval ──────────────────────────────────────────────────────────────────
 
 def retrieve_context(query_texts: list[str], db_path: Path = RAG_DB, top_k: int = TOP_K, client=None) -> list[dict]:
+    db_path = Path(db_path)
     if not db_path.exists():
         return []
 
