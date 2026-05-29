@@ -85,15 +85,15 @@ with clear install hint if missing).
 
 ## New Brief (no Python needed)
 ```yaml
-# profiles/crypto.yaml
-name: "Crypto Brief"
+# profiles/cloud.yaml
+name: "Cloud Brief"
 sources:
-  - { id: coindesk, name: "CoinDesk", type: rss, url: "https://...", weight: 5 }
+  - { id: aws-blog, name: "AWS Blog", type: rss, url: "https://...", weight: 5 }
 prompts:
-  system_file: "profiles/prompts/crypto_system.txt"
+  system_file: "profiles/prompts/cloud_system.txt"
 output:
-  title: "Crypto Intelligence Brief"
-lm:
+  title: "Cloud Intelligence Brief"
+llm:
   provider: auto
 ```
-Then: python run_local.py --profile profiles/crypto.yaml
+Then: python run_local.py --profile profiles/cloud.yaml
