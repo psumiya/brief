@@ -33,6 +33,7 @@ SOURCES = [
         "type": "rss",
         "url": "https://simonwillison.net/atom/everything/",
         "weight": 3,
+        "filter_offtopic": True,
     },
 
     # ── YouTube Channels ───────────────────────────────────────────────────────
@@ -83,6 +84,7 @@ SOURCES = [
         "type": "rss",
         "url": "https://lexfridman.com/feed/podcast/",
         "weight": 3,
+        "filter_offtopic": True,
     },
     {
         "id": "dwarkesh-patel",

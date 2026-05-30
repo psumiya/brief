@@ -13,6 +13,7 @@ from botocore.exceptions import ClientError
 os.environ.setdefault("FORCE_REFRESH", "1")
 
 from pipeline import build_user_prompt
+from relevance import filter_offtopic
 from tools import mark_items_seen
 from rag import build_rag_context_block, index_brief
 from synthesis import call_bedrock, resolve_source_urls, synthesize_with_retry
@@ -102,6 +103,11 @@ def handler(event, context):
         for obj in page.get("Contents", []):
             resp = s3.get_object(Bucket=bucket, Key=obj["Key"])
             pre_fetched.append(json.loads(resp["Body"].read()))
+
+    pre_fetched, gate = filter_offtopic(pre_fetched)
+    _log({"event": "offtopic_gate", "run_id": run_id,
+          "evaluated_sources": gate["evaluated_sources"],
+          "items_evaluated": gate["items_evaluated"], "dropped": gate["dropped"]})
 
     sources_err = [s.get("id", "?") for s in pre_fetched if s.get("error")]
     total_items = sum(len(s.get("items", [])) for s in pre_fetched)

@@ -1,7 +1,7 @@
 # SAM Makefile build — copies shared source files + installs Lambda-only deps.
 # Called by `sam build` with ARTIFACTS_DIR set to the staging directory.
 
-SHARED_PY   = tools.py sources.py tracker.py synthesis.py rag.py pipeline.py config.py llm.py
+SHARED_PY   = tools.py sources.py tracker.py synthesis.py rag.py pipeline.py config.py llm.py relevance.py
 HANDLER_PY  = fn_orchestrator.py fn_fetch.py fn_aggregate.py
 LAMBDA_REQS = lambda_requirements.txt
 

@@ -1,0 +1,11 @@
+This is a daily AI intelligence brief for senior AI practitioners and researchers.
+An item is ON-TOPIC if it concerns artificial intelligence or machine learning in any
+form, including: foundation models and research (architectures, training, benchmarks,
+weights), agents and AI applications/products, open-source AI tooling and frameworks,
+AI hardware and compute infrastructure (GPUs, data centers, accelerators), datasets and
+data pipelines, and the surrounding industry, policy, and community discourse about AI.
+
+An item is OFF-TOPIC if it has no substantive connection to AI/ML — for example a
+personal life update, a non-AI hobby or product review, general politics, sports, or a
+software/engineering post with no AI angle. When an item plausibly touches AI, treat it
+as on-topic; only drop items that are clearly unrelated.
