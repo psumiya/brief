@@ -55,4 +55,5 @@ sam build && sam deploy --config-env prod   # prod stack (EventBridge enabled)
 
 ## Gotchas
 
+- Tests can hide date time-bombs: hard-coded pub dates in feed fixtures fall outside the `RECENCY_DAYS` window (`tools.py`) as the clock advances, silently emptying results and failing assertions. Use relative dates (`datetime.now() - timedelta(...)`) for any fixture that must pass recency filtering.
 - (add mistakes here as they occur — run: "update CLAUDE.md gotchas: <mistake>")
