@@ -21,7 +21,8 @@ load_dotenv()
 
 S3_BUCKET              = os.getenv("S3_BUCKET")
 CLOUDFRONT_DIST_ID     = os.getenv("CLOUDFRONT_DISTRIBUTION_ID")
-BRIEF_PREFIX           = "brief"   # s3://bucket/brief/
+BRIEF_PREFIX           = "brief"   # s3://bucket/brief/  (site assets live here)
+BRIEF_ID               = "ai"      # brief namespace — data lives at brief/ai/...
 
 SITE_DIR   = Path("site")
 OUTPUT_DIR = Path("output")
@@ -42,7 +43,13 @@ def run(cmd: list[str], dry: bool = False, capture: bool = False) -> subprocess.
 
 
 def s3_key(path: str) -> str:
+    """Site-asset key under the brief root (e.g. brief/index.html)."""
     return f"s3://{S3_BUCKET}/{BRIEF_PREFIX}/{path}"
+
+
+def data_key(path: str) -> str:
+    """Brief data key under the namespaced path (e.g. brief/ai/output/latest.json)."""
+    return f"s3://{S3_BUCKET}/{BRIEF_PREFIX}/{BRIEF_ID}/{path}"
 
 
 def plan() -> dict:
@@ -63,10 +70,10 @@ def plan() -> dict:
             continue
         name = f.name
         if name in ("latest.json", "narrative_threads.json"):
-            plan["output_mutable"].append({"local": str(f), "s3": s3_key(f"output/{name}"), "cache": NO_CACHE})
-            plan["invalidations"].append(f"/{BRIEF_PREFIX}/output/{name}")
+            plan["output_mutable"].append({"local": str(f), "s3": data_key(f"output/{name}"), "cache": NO_CACHE})
+            plan["invalidations"].append(f"/{BRIEF_PREFIX}/{BRIEF_ID}/output/{name}")
         elif name.startswith("brief-") and name.endswith(".json"):
-            plan["output_immutable"].append({"local": str(f), "s3": s3_key(f"output/{name}"), "cache": IMMUTABLE})
+            plan["output_immutable"].append({"local": str(f), "s3": data_key(f"output/{name}"), "cache": IMMUTABLE})
 
     return plan
 
@@ -74,7 +81,7 @@ def plan() -> dict:
 def build_index() -> dict:
     """List brief-*.json files already on S3 to derive the full date index."""
     result = run(
-        ["aws", "s3", "ls", s3_key("output/")],
+        ["aws", "s3", "ls", data_key("output/")],
         dry=False, capture=True,
     )
     dates = []
@@ -160,7 +167,7 @@ def deploy(p: dict, dry: bool) -> None:
 
     # Build index.json from all brief-*.json files already on S3
     index_local = OUTPUT_DIR / "index.json"
-    index_s3    = s3_key("output/index.json")
+    index_s3    = data_key("output/index.json")
     if not dry:
         index = build_index()
         index_local.write_text(json.dumps(index, indent=2))
@@ -169,7 +176,7 @@ def deploy(p: dict, dry: bool) -> None:
     else:
         print(f"  [dry-run] would build index.json from S3 listing and upload → {index_s3}")
 
-    invalidate(p["invalidations"] + [f"/{BRIEF_PREFIX}/output/index.json"], dry=dry)
+    invalidate(p["invalidations"] + [f"/{BRIEF_PREFIX}/{BRIEF_ID}/output/index.json"], dry=dry)
 
     if not dry:
         print(f"\n✓ Deployed {len(all_files) + 1} files to s3://{S3_BUCKET}/{BRIEF_PREFIX}/")

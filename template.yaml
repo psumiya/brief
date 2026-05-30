@@ -17,6 +17,10 @@ Parameters:
     Type: String
     Default: ""
     Description: "CloudFront distribution ID — leave empty for dev (no invalidation)"
+  BriefId:
+    Type: String
+    Default: "ai"
+    Description: "Brief namespace — data is written to {prefix}/{BriefId}/ (e.g. brief/ai/)"
   GoogleApiKey:
     Type: String
     NoEcho: true
@@ -38,6 +42,7 @@ Globals:
         STAGE: !Ref Stage
         S3_BUCKET: !Ref S3Bucket
         S3_PREFIX: !If [IsProd, "brief", !Sub "brief-${Stage}"]
+        BRIEF_ID: !Ref BriefId
         GOOGLE_API_KEY: !Ref GoogleApiKey
         CLOUDFRONT_DIST_ID: !Ref CloudFrontDistId
         FORCE_REFRESH: "1"
@@ -239,4 +244,4 @@ Outputs:
     Value: !Ref BriefStateMachine
   S3OutputPrefix:
     Description: S3 prefix where brief output is written
-    Value: !Sub "s3://${S3Bucket}/brief-${Stage}/output/"
+    Value: !Sub "s3://${S3Bucket}/brief-${Stage}/${BriefId}/output/"
