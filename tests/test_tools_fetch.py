@@ -1,6 +1,6 @@
 import json
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from datetime import datetime, timezone, timedelta
 
 from tracker import TokenTracker
@@ -117,7 +117,10 @@ def _make_feed(entries=None, bozo=False, bozo_exception=None):
     return feed
 
 
-def _make_feed_entry(title="Article", url="https://example.com/1", pub="Mon, 18 May 2026 10:00:00 +0000", content="Some content."):
+_RECENT_PUB = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%a, %d %b %Y %H:%M:%S +0000")
+
+
+def _make_feed_entry(title="Article", url="https://example.com/1", pub=_RECENT_PUB, content="Some content."):
     e = MagicMock()
     e.get = lambda k, default=None: {
         "title": title, "link": url, "published": pub,
@@ -208,19 +211,14 @@ def test_synthesize_youtube_video_invalid_json_fallback():
     assert result["url"].endswith("vid1")
 
 
-def test_synthesize_youtube_video_retries_on_429():
+def test_synthesize_youtube_video_propagates_error():
+    # Retry was removed deliberately (74d89db): the function fails fast and lets
+    # the caller / Step Functions handle retries. A 429 should propagate after a
+    # single call, not be retried here.
     from tools import synthesize_youtube_video
     client = MagicMock()
-    response = MagicMock()
-    response.text = '{"title": "ok", "summary": "s", "significance": "low"}'
-    response.usage_metadata.prompt_token_count = 10
-    response.usage_metadata.candidates_token_count = 5
-    client.models.generate_content.side_effect = [
-        Exception("429 rate limit"),
-        response,
-    ]
+    client.models.generate_content.side_effect = Exception("429 rate limit")
     tracker = TokenTracker()
-    with patch("tools.time.sleep"):
-        result = synthesize_youtube_video("vid2", tracker, "test", client=client)
-    assert client.models.generate_content.call_count == 2
-    assert result["title"] == "ok"
+    with pytest.raises(Exception, match="429 rate limit"):
+        synthesize_youtube_video("vid2", tracker, "test", client=client)
+    assert client.models.generate_content.call_count == 1
