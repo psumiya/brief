@@ -23,11 +23,11 @@ def handler(event, context):
     run_id = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     date = datetime.now().strftime("%Y-%m-%d")
     bucket = os.environ["S3_BUCKET"]
-    prefix = os.environ["S3_PREFIX"]
+    base = f"{os.environ['S3_PREFIX']}/{os.environ['BRIEF_ID']}"
 
     if not force:
         try:
-            boto3.client("s3").head_object(Bucket=bucket, Key=f"{prefix}/output/brief-{date}.json")
+            boto3.client("s3").head_object(Bucket=bucket, Key=f"{base}/output/brief-{date}.json")
             _log({"event": "execution_skipped", "date": date,
                   "reason": f"brief-{date}.json already exists — pass force=true to re-run"})
             return {"run_id": None, "date": date, "sources_enqueued": 0, "status": "skipped"}

@@ -1,0 +1,6 @@
+{
+  "briefs": [
+    { "id": "ai",    "title": "AI Brief",    "path": "ai",    "blurb": "Daily AI intelligence brief" },
+    { "id": "cloud", "title": "Cloud Brief", "path": "cloud", "blurb": "Cloud & infrastructure brief" }
+  ]
+}

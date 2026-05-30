@@ -60,12 +60,12 @@ def handler(event, context):
     source = event["source_config"]
     msg_type = event["type"]
     bucket = os.environ["S3_BUCKET"]
-    prefix = os.environ["S3_PREFIX"]
+    base = f"{os.environ['S3_PREFIX']}/{os.environ['BRIEF_ID']}"
     t0 = time.time()
 
     _log({"event": "fetch_started", "run_id": run_id, "source_id": source_id, "type": msg_type})
 
-    seen_data = _load_s3_json(bucket, f"{prefix}/state/seen_items.json", {})
+    seen_data = _load_s3_json(bucket, f"{base}/state/seen_items.json", {})
     Path("/tmp").mkdir(exist_ok=True)
     Path("/tmp/.seen_items.json").write_text(json.dumps(seen_data))
     seen = load_seen_items()
@@ -99,7 +99,7 @@ def handler(event, context):
           "items_fetched": len(items), "items_new": len(result["items"]),
           "skipped": skipped, "duration_ms": duration_ms})
 
-    _put_s3_json(bucket, f"{prefix}/runs/{run_id}/{source_id}.json", result)
+    _put_s3_json(bucket, f"{base}/runs/{run_id}/{source_id}.json", result)
 
     return {
         "source_id": source_id,

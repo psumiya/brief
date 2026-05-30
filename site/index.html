@@ -565,12 +565,13 @@
   <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
   <!--
-    DATA_ROOT: path prefix for JSON data files.
-    Local dev: site/output -> ../output (symlink created at setup). Serve from site/:
-      cd site && python -m http.server 8080
-    Production (S3): JSON files are in the same directory as index.html, DATA_ROOT stays ''.
+    Multi-brief layout: index.html + briefs.json live at the site root; each brief's JSON
+    lives under <path>/output/ (e.g. ai/output/latest.json), relative to index.html.
+    No ?b= param → landing page listing briefs; ?b=<id> → reader for that brief.
+    Local dev: stage data under site/<path>/output/ and serve from site/:
+      python3 -m http.server 8081   (open http://localhost:8081/site/)
   -->
-  <script>window.BRIEF_DATA_ROOT = window.BRIEF_DATA_ROOT ?? 'output';</script>
+
 
   <script type="text/babel" data-presets="react">
 const { useState, useMemo, useRef, useEffect } = React;
@@ -612,11 +613,17 @@ const STACK_TO_ID  = {
 };
 
 // ----- Data helpers -----
-const DATA_ROOT = window.BRIEF_DATA_ROOT;
-
-function dataUrl(filename) {
-  return DATA_ROOT ? `${DATA_ROOT}/${filename}` : filename;
+// Each brief's JSON lives under `<path>/output/` relative to index.html.
+function briefDataRoot(brief) {
+  return brief && brief.path ? `${brief.path}/output` : 'output';
 }
+
+function dataUrl(filename, root) {
+  return root ? `${root}/${filename}` : filename;
+}
+
+// briefs.json sits at the site root, beside index.html.
+const MANIFEST_URL = 'briefs.json';
 
 function isoToDate(str) {
   // Parse YYYY-MM-DD without timezone shift
@@ -891,28 +898,30 @@ function Bullet({ item, index }) {
   );
 }
 
-// ----- Main App -----
-function App() {
+// ----- Reader (single brief) -----
+function Reader({ briefMeta }) {
   const [brief, setBrief]               = useState(null);
   const [loading, setLoading]           = useState(true);
   const [error, setError]               = useState(null);
   const [availableDates, setAvailDates] = useState([]);
   const [theme, setTheme]               = useState('all');
 
+  const root = briefDataRoot(briefMeta);
+
   // Parse ?date= from URL
   const urlDate = useMemo(() => new URLSearchParams(location.search).get('date'), []);
 
   useEffect(() => {
     // Load index.json for date navigation (non-fatal if missing)
-    fetch(dataUrl('index.json'))
+    fetch(dataUrl('index.json', root))
       .then(r => r.ok ? r.json() : { dates: [] })
       .then(idx => setAvailDates(idx.dates || []))
       .catch(() => {});
 
     // Load the brief
     const url = urlDate
-      ? dataUrl(`brief-${urlDate}.json`)
-      : dataUrl('latest.json');
+      ? dataUrl(`brief-${urlDate}.json`, root)
+      : dataUrl('latest.json', root);
 
     fetch(url)
       .then(r => {
@@ -923,7 +932,7 @@ function App() {
         setBrief(transformBrief(json));
         setLoading(false);
         // Update page title
-        if (json.date) document.title = `AI Intelligence Brief — ${json.date}`;
+        if (json.date) document.title = `${briefMeta.title} — ${json.date}`;
       })
       .catch(err => {
         setError(err.message);
@@ -942,7 +951,7 @@ function App() {
     // delta=-1 → older (higher index), delta=+1 → newer (lower index)
     const newIdx = currentIdx - delta;
     if (newIdx >= 0 && newIdx < availableDates.length) {
-      window.location.href = `?date=${availableDates[newIdx]}`;
+      window.location.href = `?b=${briefMeta.id}&date=${availableDates[newIdx]}`;
     }
   }
 
@@ -977,7 +986,9 @@ function App() {
       <div className="state-screen">
         <p className="state-title">Brief unavailable</p>
         <p className="mono">{error}</p>
-        {urlDate && <a href="?" className="mono" style={{color:'var(--accent-ink)'}}>← Latest edition</a>}
+        {urlDate
+          ? <a href={`?b=${briefMeta.id}`} className="mono" style={{color:'var(--accent-ink)'}}>← Latest edition</a>
+          : <a href="?" className="mono" style={{color:'var(--accent-ink)'}}>← All briefs</a>}
       </div>
     </div>
   );
@@ -994,9 +1005,10 @@ function App() {
       <header className="masthead">
         <div className="masthead-row">
           <div className="masthead-left">
+            <a href="?" className="brief-back mono" style={{color:'var(--accent-ink)', textDecoration:'none', display:'inline-block', marginBottom:'0.4rem'}}>← All briefs</a>
             <div className="brand">
               <span className="brand-mark" aria-hidden="true">◆</span>
-              <span className="brand-name">AI Intelligence Brief</span>
+              <span className="brand-name">{briefMeta.title}</span>
             </div>
             <span className="brand-sub mono">Daily · AI-synthesised</span>
           </div>
@@ -1103,7 +1115,7 @@ function App() {
       <footer className="footer">
         <div className="footer-rule"></div>
         <div className="footer-row mono">
-          <div>© AI Intelligence Brief · Auto-compiled from public sources by AI</div>
+          <div>© {briefMeta.title} · Auto-compiled from public sources by AI</div>
           <div className="footer-meta">
             {generatedTime && <><span>Compiled {generatedTime}</span><span className="sep">·</span></>}
             <span>Next edition: tomorrow</span>
@@ -1112,6 +1124,105 @@ function App() {
       </footer>
     </div>
   );
+}
+
+// ----- Landing (brief directory) -----
+function Landing({ briefs }) {
+  // id -> {date, headline} when loaded, {error:true} on miss, undefined while loading
+  const [meta, setMeta] = useState({});
+
+  useEffect(() => {
+    document.title = 'Briefs';
+    briefs.forEach(b => {
+      fetch(dataUrl('latest.json', briefDataRoot(b)))
+        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+        .then(json => setMeta(m => ({ ...m, [b.id]: {
+          date: json.date,
+          headline: json.deep_takes?.[0]?.headline || null,
+        }})))
+        .catch(() => setMeta(m => ({ ...m, [b.id]: { error: true } })));
+    });
+  }, []);
+
+  return (
+    <div className="paper">
+      <header className="masthead">
+        <div className="masthead-row">
+          <div className="masthead-left">
+            <div className="brand">
+              <span className="brand-mark" aria-hidden="true">◆</span>
+              <span className="brand-name">Briefs</span>
+            </div>
+            <span className="brand-sub mono">Daily · AI-synthesised digests</span>
+          </div>
+        </div>
+      </header>
+
+      <section className="section">
+        <div className="section-head">
+          <h2 className="section-title">
+            <span className="section-kicker mono">§ 01</span>
+            Choose a brief
+          </h2>
+          <p className="section-sub">Each brief is a separate daily digest. Pick one to read today's edition.</p>
+        </div>
+        <div className="deep-grid">
+          {briefs.map(b => {
+            const info  = meta[b.id];
+            const ready = info && !info.error;
+            const status = ready ? `${info.date} edition`
+                         : info && info.error ? 'Coming soon'
+                         : 'Loading…';
+            return (
+              <a key={b.id} href={`?b=${b.id}`} className="brief-card"
+                 style={{display:'block', padding:'1.25rem 1.4rem', border:'1px solid var(--rule)',
+                         borderRadius:'4px', textDecoration:'none', color:'inherit'}}>
+                <div className="mono" style={{fontSize:'0.75rem', opacity:0.6, marginBottom:'0.5rem'}}>{status}</div>
+                <div style={{fontSize:'1.35rem', fontWeight:700, marginBottom:'0.4rem'}}>{b.title}</div>
+                {b.blurb && <div style={{opacity:0.75, marginBottom:'0.75rem'}}>{b.blurb}</div>}
+                {ready && info.headline &&
+                  <div style={{fontStyle:'italic', opacity:0.85}}>“{info.headline}”</div>}
+              </a>
+            );
+          })}
+        </div>
+      </section>
+
+      <footer className="footer">
+        <div className="footer-rule"></div>
+        <div className="footer-row mono">
+          <div>© Briefs · Auto-compiled from public sources by AI</div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+// ----- App router: landing (no ?b=) vs reader (?b=<id>) -----
+const DEFAULT_MANIFEST = { briefs: [{ id: 'ai', title: 'AI Brief', path: 'ai', blurb: '' }] };
+
+function App() {
+  const [manifest, setManifest] = useState(null);
+  const briefId = useMemo(() => new URLSearchParams(location.search).get('b'), []);
+
+  useEffect(() => {
+    fetch(MANIFEST_URL)
+      .then(r => r.ok ? r.json() : DEFAULT_MANIFEST)
+      .then(m => setManifest(m?.briefs ? m : DEFAULT_MANIFEST))
+      .catch(() => setManifest(DEFAULT_MANIFEST));
+  }, []);
+
+  if (!manifest) return (
+    <div className="paper">
+      <div className="state-screen">
+        <div className="spinner" />
+        <p className="mono">Loading…</p>
+      </div>
+    </div>
+  );
+
+  const active = manifest.briefs.find(b => b.id === briefId);
+  return active ? <Reader briefMeta={active} /> : <Landing briefs={manifest.briefs} />;
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);

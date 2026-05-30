@@ -80,14 +80,14 @@ def handler(event, context):
     date = event["date"]
     force = event.get("force", False)
     bucket = os.environ["S3_BUCKET"]
-    prefix = os.environ["S3_PREFIX"]
+    base = f"{os.environ['S3_PREFIX']}/{os.environ['BRIEF_ID']}"
     run_start = time.time()
 
     _log({"event": "aggregate_started", "run_id": run_id, "date": date, "force": force})
 
     if not force:
         try:
-            _s3().head_object(Bucket=bucket, Key=f"{prefix}/output/brief-{date}.json")
+            _s3().head_object(Bucket=bucket, Key=f"{base}/output/brief-{date}.json")
             _log({"event": "aggregate_skipped", "run_id": run_id,
                   "reason": f"brief-{date}.json already exists — pass force=true to re-synthesize"})
             return {"run_id": run_id, "date": date, "status": "skipped", "reason": "already_exists"}
@@ -98,7 +98,7 @@ def handler(event, context):
     s3 = _s3()
     paginator = s3.get_paginator("list_objects_v2")
     pre_fetched = []
-    for page in paginator.paginate(Bucket=bucket, Prefix=f"{prefix}/runs/{run_id}/"):
+    for page in paginator.paginate(Bucket=bucket, Prefix=f"{base}/runs/{run_id}/"):
         for obj in page.get("Contents", []):
             resp = s3.get_object(Bucket=bucket, Key=obj["Key"])
             pre_fetched.append(json.loads(resp["Body"].read()))
@@ -114,10 +114,10 @@ def handler(event, context):
               "reason": "no new items after deduplication — preserving existing brief"})
         return {"run_id": run_id, "date": date, "status": "skipped", "reason": "no_new_items"}
 
-    threads = _load_s3_json(bucket, f"{prefix}/output/narrative_threads.json", [])
-    seen_items = _load_s3_json(bucket, f"{prefix}/state/seen_items.json", {})
+    threads = _load_s3_json(bucket, f"{base}/output/narrative_threads.json", [])
+    seen_items = _load_s3_json(bucket, f"{base}/state/seen_items.json", {})
 
-    rag_db = _download_rag_db(bucket, prefix)
+    rag_db = _download_rag_db(bucket, base)
     rag_context = ""
     if rag_db:
         source_titles = [
@@ -133,35 +133,35 @@ def handler(event, context):
     brief = _synthesize(pre_fetched, threads, date, rag_context=rag_context)
     resolve_source_urls(brief, pre_fetched)
 
-    _put_s3_json(bucket, f"{prefix}/output/brief-{date}.json", brief, cache_control="max-age=86400")
-    _put_s3_json(bucket, f"{prefix}/output/latest.json", brief)
-    _put_s3_json(bucket, f"{prefix}/output/narrative_threads.json", brief.get("narrative_threads", []))
+    _put_s3_json(bucket, f"{base}/output/brief-{date}.json", brief, cache_control="max-age=86400")
+    _put_s3_json(bucket, f"{base}/output/latest.json", brief)
+    _put_s3_json(bucket, f"{base}/output/narrative_threads.json", brief.get("narrative_threads", []))
     _log({"event": "output_written", "run_id": run_id, "date": date})
 
     mark_items_seen(pre_fetched, seen_items)
-    _put_s3_json(bucket, f"{prefix}/state/seen_items.json", seen_items)
+    _put_s3_json(bucket, f"{base}/state/seen_items.json", seen_items)
 
     n = index_brief(brief, date, db_path=rag_db or _RAG_DB_TMP)
     if n:
-        _upload_rag_db(bucket, prefix)
+        _upload_rag_db(bucket, base)
         _log({"event": "rag_indexed", "run_id": run_id, "chunks": n})
 
     dates = []
-    for page in paginator.paginate(Bucket=bucket, Prefix=f"{prefix}/output/brief-"):
+    for page in paginator.paginate(Bucket=bucket, Prefix=f"{base}/output/brief-"):
         for obj in page.get("Contents", []):
             name = obj["Key"].split("/")[-1]
             if name.startswith("brief-") and name.endswith(".json"):
                 dates.append(name[len("brief-"):-len(".json")])
     dates = sorted(set(dates), reverse=True)[:90]
-    _put_s3_json(bucket, f"{prefix}/output/index.json", {"dates": dates})
+    _put_s3_json(bucket, f"{base}/output/index.json", {"dates": dates})
 
     cf_dist_id = os.environ.get("CLOUDFRONT_DIST_ID", "")
     if cf_dist_id and cf_dist_id.upper() != "NONE":
         inv_paths = [
-            f"/{prefix}/output/latest.json",
-            f"/{prefix}/output/narrative_threads.json",
-            f"/{prefix}/output/index.json",
-            f"/{prefix}/output/brief-{date}.json",
+            f"/{base}/output/latest.json",
+            f"/{base}/output/narrative_threads.json",
+            f"/{base}/output/index.json",
+            f"/{base}/output/brief-{date}.json",
         ]
         boto3.client("cloudfront").create_invalidation(
             DistributionId=cf_dist_id,
