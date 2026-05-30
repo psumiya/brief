@@ -26,6 +26,7 @@ from tracker import TokenTracker
 from tools import fetch_all_sources, load_threads, save_output, load_cache, \
     load_seen_items, save_seen_items, filter_seen_items, mark_items_seen
 from pipeline import build_user_prompt
+from relevance import filter_offtopic
 from synthesis import call_bedrock, resolve_source_urls, synthesize_with_retry
 try:
     from rag import index_brief, build_rag_context_block, RAG_DB
@@ -119,9 +120,12 @@ def main():
 
     seen = load_seen_items()
     pre_fetched, skipped = filter_seen_items(pre_fetched, seen)
+    pre_fetched, gate = filter_offtopic(pre_fetched)
     total_items = sum(len(s.get("items", [])) for s in pre_fetched)
-    log.info("Phase 1 done in %.1fs — %d items across %d sources (%d already-seen skipped)",
-             time.time() - t1, total_items, len(pre_fetched), skipped)
+    log.info("Phase 1 done in %.1fs — %d items across %d sources "
+             "(%d already-seen skipped, %d off-topic dropped from %s)",
+             time.time() - t1, total_items, len(pre_fetched), skipped,
+             gate["dropped"], gate["evaluated_sources"] or "—")
 
     passed = [(s["id"], len(s["items"])) for s in pre_fetched if "error" not in s]
     failed = [(s["id"], s.get("error", "unknown")) for s in pre_fetched if "error" in s]
