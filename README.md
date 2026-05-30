@@ -1,6 +1,6 @@
 # brief
 
-A daily AI intelligence digest generator. Fetches content from RSS feeds and YouTube channels, synthesizes it with an LLM, and produces a structured brief.
+A configurable daily intelligence brief generator. Fetches content from RSS feeds and YouTube channels, synthesizes it with an LLM, and produces a structured brief. Ships with an AI-news profile out of the box; add your own profiles (Cloud, security, finance, etc.) with no code changes.
 
 ## Which mode do I use?
 
