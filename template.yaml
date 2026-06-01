@@ -12,7 +12,7 @@ Parameters:
     Description: "dev writes to brief-dev/ prefix; prod writes to brief/ prefix (live site)"
   S3Bucket:
     Type: String
-    Default: algoclinic.com
+    Description: "Target S3 bucket for the published site (set in samconfig.toml)"
   CloudFrontDistId:
     Type: String
     Default: ""

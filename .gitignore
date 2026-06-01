@@ -1,4 +1,9 @@
 .env
+
+# Local SAM deploy config — personal infra (bucket, CloudFront, region).
+# Copy samconfig.toml.example to samconfig.toml and fill in your own values.
+samconfig.toml
+
 output/
 site/output/
 __pycache__/
