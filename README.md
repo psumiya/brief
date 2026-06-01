@@ -63,6 +63,11 @@ This covers all three modes; `requirements.txt` includes the `anthropic` and `py
 ```bash
 pip install aws-sam-cli
 
+cp samconfig.toml.example samconfig.toml
+# edit samconfig.toml: set S3Bucket to your bucket and region. For prod, also
+# set CloudFrontDistId to your distribution id (dev uses NONE to skip
+# invalidation). Create the S3 bucket first if it doesn't exist.
+
 # Deploy dev stack (manual trigger only)
 sam build && sam deploy --config-env dev
 
@@ -70,7 +75,12 @@ sam build && sam deploy --config-env dev
 sam build && sam deploy --config-env prod
 ```
 
-Requires the `aws` CLI configured with IAM permissions for Lambda, Step Functions, S3, CloudFront, EventBridge, Bedrock, and CloudWatch.
+`samconfig.toml` is gitignored so your infrastructure values stay local — fork
+freely and point it at your own bucket. `GoogleApiKey` is passed at deploy time
+rather than stored in the file (see the override examples in
+`samconfig.toml.example`). Requires the `aws` CLI configured with IAM
+permissions for Lambda, Step Functions, S3, CloudFront, EventBridge, Bedrock,
+and CloudWatch.
 
 ## Usage
 

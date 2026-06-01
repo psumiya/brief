@@ -1,12 +1,21 @@
 version = 0.1
 
+# Copy this file to samconfig.toml and fill in your own infrastructure values.
+# samconfig.toml is gitignored so your personal config never gets committed.
+#
+# What to change:
+#   - S3Bucket         → the bucket that hosts your published site
+#   - region           → your AWS region (and stack_name if you prefer)
+#   - CloudFrontDistId  → prod only; your distribution id (dev uses NONE to skip
+#                         invalidation)
+
 # ── Dev (default) ─────────────────────────────────────────────────────────────
 # Deploys to brief-dev/ S3 prefix. EventBridge rule is DISABLED.
 # Validate with: sam deploy && aws lambda invoke --function-name brief-orchestrator-dev ...
 
 [default.global.parameters]
 stack_name    = "brief-dev"
-region        = "us-west-2"
+region        = "us-west-2"          # change to your region
 capabilities  = "CAPABILITY_IAM"
 resolve_s3    = true
 s3_prefix     = "brief-sam-builds"
@@ -20,7 +29,7 @@ fail_on_empty_changeset = false
 #   sam deploy --parameter-overrides "GoogleApiKey=$(aws ssm get-parameter --name /brief/GOOGLE_API_KEY --with-decryption --query Parameter.Value --output text)"
 parameter_overrides = [
     "Stage=dev",
-    "S3Bucket=algoclinic.com",
+    "S3Bucket=your-bucket-name",
     "CloudFrontDistId=NONE",
     "ScheduleExpression=\"cron(0 5 * * ? *)\"",
 ]
@@ -31,7 +40,7 @@ parameter_overrides = [
 
 [prod.global.parameters]
 stack_name    = "brief-prod"
-region        = "us-west-2"
+region        = "us-west-2"          # change to your region
 capabilities  = "CAPABILITY_IAM"
 resolve_s3    = true
 s3_prefix     = "brief-sam-builds"
@@ -40,13 +49,13 @@ s3_prefix     = "brief-sam-builds"
 confirm_changeset = false
 fail_on_empty_changeset = false
 # GoogleApiKey must be passed at deploy time:
-#   sam deploy --config-env prod --parameter-overrides "Stage=prod S3Bucket=algoclinic.com CloudFrontDistId=E35HO90YLKGBXV GoogleApiKey=$(aws ssm get-parameter --name /brief/GOOGLE_API_KEY --with-decryption --query Parameter.Value --output text)"
+#   sam deploy --config-env prod --parameter-overrides "Stage=prod S3Bucket=your-bucket-name CloudFrontDistId=EXXXXXXXXXXXX GoogleApiKey=$(aws ssm get-parameter --name /brief/GOOGLE_API_KEY --with-decryption --query Parameter.Value --output text)"
 # ScheduleExpression is pinned here (not left to the template default) so every
 # deploy overwrites any stale value stored on the stack. EventBridge cron is
 # UTC-only with no DST handling: cron(0 5) = 9pm PST (winter) / 10pm PDT (summer).
 parameter_overrides = [
     "Stage=prod",
-    "S3Bucket=algoclinic.com",
-    "CloudFrontDistId=E35HO90YLKGBXV",
+    "S3Bucket=your-bucket-name",
+    "CloudFrontDistId=EXXXXXXXXXXXX",
     "ScheduleExpression=\"cron(0 5 * * ? *)\"",
 ]
