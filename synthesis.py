@@ -23,12 +23,16 @@ def call_bedrock(user_content: str) -> str:
         modelId=BEDROCK_MODEL_ID,
         system=[{"text": SYSTEM_PROMPT}],
         messages=[{"role": "user", "content": [{"text": user_content}]}],
-        inferenceConfig={"maxTokens": 8192},
+        inferenceConfig={"maxTokens": 16384},
     )
     chunks = []
     for event in response["stream"]:
         if "contentBlockDelta" in event:
             chunks.append(event["contentBlockDelta"]["delta"].get("text", ""))
+        elif "messageStop" in event:
+            stop_reason = event["messageStop"].get("stopReason")
+            if stop_reason == "max_tokens":
+                log.warning("Bedrock output truncated at maxTokens — JSON will be incomplete")
         elif "metadata" in event:
             usage = event["metadata"].get("usage", {})
             log.debug(
