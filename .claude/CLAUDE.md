@@ -56,4 +56,5 @@ sam build && sam deploy --config-env prod   # prod stack (EventBridge enabled)
 ## Gotchas
 
 - Tests can hide date time-bombs: hard-coded pub dates in feed fixtures fall outside the `RECENCY_DAYS` window (`tools.py`) as the clock advances, silently emptying results and failing assertions. Use relative dates (`datetime.now() - timedelta(...)`) for any fixture that must pass recency filtering.
+- A `JSONDecodeError` mid-structure (e.g. "Expecting ',' delimiter" at a high char offset) in synthesis is Bedrock hitting `maxTokens` and truncating its JSON output — not a parse bug. `synthesize_with_retry` can't fix it (truncation is deterministic). Raise `maxTokens` in `synthesis.py:call_bedrock` or trim what the prompt requests; check the `messageStop` `stopReason == "max_tokens"` warning in logs to confirm.
 - (add mistakes here as they occur — run: "update CLAUDE.md gotchas: <mistake>")
