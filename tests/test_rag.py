@@ -12,9 +12,17 @@ def _mock_client(vector=None):
     if vector is None:
         vector = [0.1] * EMBED_DIM
     client = MagicMock()
-    embedding = MagicMock()
-    embedding.values = vector
-    client.models.embed_content.return_value = MagicMock(embeddings=[embedding])
+
+    def _embed(model, contents):
+        items = contents if isinstance(contents, list) else [contents]
+        embs = []
+        for _ in items:
+            e = MagicMock()
+            e.values = vector
+            embs.append(e)
+        return MagicMock(embeddings=embs)
+
+    client.models.embed_content.side_effect = _embed
     return client
 
 
@@ -51,6 +59,15 @@ def test_index_brief_inserts_chunks(db_path):
     client = _mock_client()
     n = index_brief(_minimal_brief(), "2026-05-17", db_path=db_path, client=client)
     assert n == 3  # 1 deep_take + 1 bullet + 1 thread
+
+
+def test_index_brief_batches_embeddings(db_path):
+    pytest.importorskip("sqlite_vec")
+    from rag import index_brief
+    client = _mock_client()
+    index_brief(_minimal_brief(), "2026-05-17", db_path=db_path, client=client)
+    # 3 chunks embedded in a single batched API call, not one call per chunk
+    assert client.models.embed_content.call_count == 1
 
 
 def test_index_brief_idempotent(db_path):
