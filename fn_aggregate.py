@@ -132,9 +132,12 @@ def handler(event, context):
             for item in src.get("items", [])
             if item.get("title")
         ][:20]
-        rag_context = build_rag_context_block(source_titles, db_path=rag_db)
-        if rag_context:
-            _log({"event": "rag_context_built", "run_id": run_id, "chars": len(rag_context)})
+        try:
+            rag_context = build_rag_context_block(source_titles, db_path=rag_db)
+            if rag_context:
+                _log({"event": "rag_context_built", "run_id": run_id, "chars": len(rag_context)})
+        except Exception as e:
+            _log({"event": "rag_context_failed", "run_id": run_id, "error": str(e)})
 
     brief = _synthesize(pre_fetched, threads, date, rag_context=rag_context)
     resolve_source_urls(brief, pre_fetched)
@@ -146,11 +149,6 @@ def handler(event, context):
 
     mark_items_seen(pre_fetched, seen_items)
     _put_s3_json(bucket, f"{base}/state/seen_items.json", seen_items)
-
-    n = index_brief(brief, date, db_path=rag_db or _RAG_DB_TMP)
-    if n:
-        _upload_rag_db(bucket, base)
-        _log({"event": "rag_indexed", "run_id": run_id, "chunks": n})
 
     dates = []
     for page in paginator.paginate(Bucket=bucket, Prefix=f"{base}/output/brief-"):
@@ -180,6 +178,17 @@ def handler(event, context):
     else:
         _log({"event": "cloudfront_skipped", "run_id": run_id,
               "reason": "CLOUDFRONT_DIST_ID not set (dev mode)"})
+
+    # RAG indexing is best-effort historical enrichment — it runs after the brief
+    # is published and the CDN is invalidated, so an embedding failure (e.g. Gemini
+    # 429) logs a warning but never blocks the live brief.
+    try:
+        n = index_brief(brief, date, db_path=rag_db or _RAG_DB_TMP)
+        if n:
+            _upload_rag_db(bucket, base)
+            _log({"event": "rag_indexed", "run_id": run_id, "chunks": n})
+    except Exception as e:
+        _log({"event": "rag_index_failed", "run_id": run_id, "error": str(e)})
 
     total_ms = int((time.time() - run_start) * 1000)
     _log({"event": "run_complete", "run_id": run_id, "total_duration_ms": total_ms,

@@ -72,13 +72,20 @@ def _embedding_client(client=None):
     return genai.Client(api_key=api_key)
 
 
-def embed_text(text: str, client=None) -> list[float]:
+def embed_texts(texts: list[str], client=None) -> list[list[float]]:
+    """Embed a batch of texts in a single API call (one request, N vectors)."""
+    if not texts:
+        return []
     c = _embedding_client(client)
     result = c.models.embed_content(
         model=EMBEDDING_MODEL,
-        contents=text,
+        contents=texts,
     )
-    return result.embeddings[0].values
+    return [e.values for e in result.embeddings]
+
+
+def embed_text(text: str, client=None) -> list[float]:
+    return embed_texts([text], client=client)[0]
 
 
 def _serialize(embedding: list[float]) -> bytes:
@@ -127,9 +134,9 @@ def index_brief(brief: dict, date: str, db_path: Path = RAG_DB, client=None) -> 
         return 0
 
     chunks = _brief_chunks(brief, date)
+    embeddings = embed_texts([c["text"] for c in chunks], client=client)
     inserted = 0
-    for chunk in chunks:
-        embedding = embed_text(chunk["text"], client=client)
+    for chunk, embedding in zip(chunks, embeddings):
         cur = conn.execute(
             "INSERT INTO chunks (brief_date, chunk_type, text, metadata) VALUES (?, ?, ?, ?)",
             (date, chunk["chunk_type"], chunk["text"], json.dumps(chunk["metadata"])),
@@ -157,8 +164,8 @@ def retrieve_context(query_texts: list[str], db_path: Path = RAG_DB, top_k: int 
     results = []
     seen_texts = set()
 
-    for query in query_texts:
-        embedding = embed_text(query, client=client)
+    embeddings = embed_texts(query_texts, client=client)
+    for embedding in embeddings:
         serialized = _serialize(embedding)
         rows = conn.execute(
             """
