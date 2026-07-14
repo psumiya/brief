@@ -130,7 +130,7 @@ def _is_recent(date_str: str | None) -> bool:
             dt = dt.replace(tzinfo=timezone.utc)
         return dt >= cutoff
     except Exception:
-        return True
+        return False
 
 
 def _extract_video_id(url: str) -> str | None:
@@ -203,6 +203,8 @@ def _parse_arxiv_entries(entries: list, max_items: int) -> list[dict]:
     seen_ids = set()
     for entry in entries:
         pub = entry.get("published") or entry.get("updated")
+        if not _is_recent(pub):
+            continue
         abstract = re.sub(r"\s+", " ", entry.get("summary", "")).strip()
         authors = []
         if hasattr(entry, "authors"):

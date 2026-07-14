@@ -27,7 +27,8 @@ def test_is_recent_old_date():
 
 def test_is_recent_malformed_string():
     from tools import _is_recent
-    assert _is_recent("not-a-date") is True
+    # Unparseable dates fail closed — an item we can't date-check is not trusted as recent.
+    assert _is_recent("not-a-date") is False
 
 
 # ── _extract_video_id ──────────────────────────────────────────────────────────
@@ -59,11 +60,14 @@ def test_extract_video_id_youtube_no_v_param():
 
 # ── _parse_arxiv_entries ───────────────────────────────────────────────────────
 
-def _make_entry(title="Paper", url="https://arxiv.org/abs/1234.56789", abstract="Abstract text."):
+_ARXIV_RECENT_PUB = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%a, %d %b %Y %H:%M:%S +0000")
+
+
+def _make_entry(title="Paper", url="https://arxiv.org/abs/1234.56789", abstract="Abstract text.", pub=_ARXIV_RECENT_PUB):
     e = MagicMock()
     e.get = lambda k, default="": {
         "title": title, "link": url, "summary": abstract,
-        "published": "Mon, 18 May 2026 00:00:00 +0000",
+        "published": pub,
     }.get(k, default)
     e.authors = [MagicMock(get=lambda k, d="": "Alice" if k == "name" else d)]
     e.author = "Alice"
@@ -82,6 +86,14 @@ def test_parse_arxiv_entries_deduplicates():
     entries = [_make_entry(url="https://arxiv.org/abs/same")] * 5
     result = _parse_arxiv_entries(entries, max_items=10)
     assert len(result) == 1
+
+
+def test_parse_arxiv_entries_filters_old():
+    from tools import _parse_arxiv_entries
+    old_pub = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%a, %d %b %Y %H:%M:%S +0000")
+    entries = [_make_entry(url=f"https://arxiv.org/abs/{i:04d}", pub=old_pub) for i in range(5)]
+    result = _parse_arxiv_entries(entries, max_items=10)
+    assert result == []
 
 
 def test_parse_arxiv_entries_constructs_arxiv_url():
