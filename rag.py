@@ -201,7 +201,13 @@ def build_rag_context_block(query_texts: list[str], db_path: Path = RAG_DB, clie
     chunks = retrieve_context(query_texts, db_path=db_path, client=client)
     if not chunks:
         return ""
-    lines = ["RELATED HISTORICAL CONTEXT (from past briefs — use to identify recurring stories):"]
+    lines = [
+        "ALREADY COVERED IN PAST BRIEFS (reference only — NOT new source material):",
+        "Do NOT restate these. Only revisit a topic below if TODAY'S PRE-FETCHED SOURCES",
+        "contain a concrete NEW development on it — then cover only that delta and add a",
+        "short back-reference to the prior coverage. Never write a new item whose substance",
+        "comes only from this section.",
+    ]
     for c in chunks:
         lines.append(f"  [{c['brief_date']} / {c['chunk_type']}] {c['text'][:300]}")
     return "\n".join(lines)

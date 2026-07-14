@@ -116,5 +116,5 @@ def test_build_rag_context_block_with_content(db_path):
     client = _mock_client()
     index_brief(_minimal_brief(), "2026-05-17", db_path=db_path, client=client)
     result = build_rag_context_block(["agents"], db_path=db_path, client=client)
-    assert "RELATED HISTORICAL CONTEXT" in result
+    assert "ALREADY COVERED IN PAST BRIEFS" in result
     assert "2026-05-17" in result
