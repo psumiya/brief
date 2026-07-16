@@ -58,6 +58,7 @@ def build_user_prompt(date: str, pre_fetched: list[dict], threads: list[dict], r
         lines.append(f"\n{rag_context}")
 
     lines.append("\nNARRATIVE THREADS FROM PRIOR DAYS:")
+    threads = _prune_threads(threads, date)
     if threads:
         lines.append(json.dumps(threads, indent=2))
     else:
@@ -67,6 +68,7 @@ def build_user_prompt(date: str, pre_fetched: list[dict], threads: list[dict], r
     return "\n".join(lines)
 
 _SEEN_TTL_DAYS = 7
+_THREAD_TTL_DAYS = 14
 
 
 def _load_json(path: Path, default):
@@ -85,6 +87,28 @@ def _prune_seen(seen: dict[str, str]) -> dict[str, str]:
     cutoff = datetime.now(timezone.utc) - timedelta(days=_SEEN_TTL_DAYS)
     return {url: ts for url, ts in seen.items()
             if datetime.fromisoformat(ts) >= cutoff}
+
+
+def _prune_threads(threads: list[dict], today: str) -> list[dict]:
+    """Drop threads gone quiet for more than _THREAD_TTL_DAYS.
+
+    Deterministic backstop for the model's unreliable cooling/resolved marking.
+    Staleness is measured against `today` (the brief date), not wall-clock, so the
+    logic is testable without freezing the clock. RAG (no age cap) remains the
+    back-reference vehicle for genuinely old topics, so dropping loses nothing.
+    Threads with a missing/unparseable last_active are kept, conservatively.
+    """
+    cutoff = datetime.fromisoformat(today).date() - timedelta(days=_THREAD_TTL_DAYS)
+    kept = []
+    for t in threads:
+        la = t.get("last_active")
+        try:
+            if la and datetime.fromisoformat(la).date() < cutoff:
+                continue
+        except ValueError:
+            pass
+        kept.append(t)
+    return kept
 
 
 def fetch(

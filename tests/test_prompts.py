@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timedelta
 from pathlib import Path
 import pytest
 from pipeline import build_user_prompt
@@ -34,6 +35,31 @@ def test_build_user_prompt_with_threads():
     prompt = build_user_prompt("2026-05-17", [], threads)
     assert "Some Thread" in prompt
     assert "(none — day 1)" not in prompt
+
+
+def test_build_user_prompt_fresh_thread_survives():
+    today = datetime.now()
+    threads = [{"id": "fresh", "title": "Fresh Thread", "status": "active",
+                "last_active": today.strftime("%Y-%m-%d")}]
+    prompt = build_user_prompt(today.strftime("%Y-%m-%d"), [], threads)
+    assert "Fresh Thread" in prompt
+
+
+def test_build_user_prompt_stale_thread_dropped():
+    today = datetime.now()
+    stale = (today - timedelta(days=40)).strftime("%Y-%m-%d")
+    threads = [{"id": "stale", "title": "Stale Thread", "status": "active",
+                "last_active": stale}]
+    prompt = build_user_prompt(today.strftime("%Y-%m-%d"), [], threads)
+    assert "Stale Thread" not in prompt
+    assert "(none — day 1)" in prompt
+
+
+def test_build_user_prompt_thread_without_last_active_kept():
+    today = datetime.now()
+    threads = [{"id": "nodate", "title": "No Date Thread", "status": "active"}]
+    prompt = build_user_prompt(today.strftime("%Y-%m-%d"), [], threads)
+    assert "No Date Thread" in prompt
 
 
 def test_build_user_prompt_weight_label_critical():
