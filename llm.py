@@ -3,6 +3,8 @@ import logging
 import os
 from abc import ABC, abstractmethod
 
+from tracker import GEMINI_MODEL
+
 log = logging.getLogger(__name__)
 
 # Matches the budget synthesis has always used for the brief. The brief JSON is large
@@ -152,7 +154,7 @@ class AnthropicAdapter(LLMAdapter):
 
 
 class GeminiAdapter(LLMAdapter):
-    DEFAULT_MODEL = "gemini-2.5-flash"
+    DEFAULT_MODEL = GEMINI_MODEL
 
     def __init__(self, model: str | None = None):
         self.model = model or self.DEFAULT_MODEL

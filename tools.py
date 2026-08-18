@@ -19,7 +19,7 @@ import feedparser
 from google import genai
 from google.genai import types as gtypes
 
-from tracker import TokenTracker
+from tracker import GEMINI_MODEL, TokenTracker
 
 YOUTUBE_SYNTHESIS_PROMPT = (
     Path(__file__).parent / "profiles" / "ai_news" / "prompts" / "youtube.txt"
@@ -123,14 +123,24 @@ def _is_recent(date_str: str | None) -> bool:
     if not date_str:
         return True
     cutoff = datetime.now(timezone.utc) - timedelta(days=RECENCY_DAYS)
-    try:
-        from email.utils import parsedate_to_datetime
-        dt = parsedate_to_datetime(date_str)
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        return dt >= cutoff
-    except Exception:
+    dt = _parse_feed_date(date_str)
+    if dt is None:
+        logger.warning("  unparseable publish date %r — treating as not recent", date_str[:40])
         return False
+    return dt >= cutoff
+
+
+def _parse_feed_date(date_str: str):
+    """RSS feeds date in RFC 2822; YouTube's Atom feed uses ISO 8601. Accept both."""
+    from email.utils import parsedate_to_datetime
+
+    for parse in (datetime.fromisoformat, parsedate_to_datetime):
+        try:
+            dt = parse(date_str)
+        except (TypeError, ValueError):
+            continue
+        return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+    return None
 
 
 def _extract_video_id(url: str) -> str | None:
@@ -277,7 +287,7 @@ def synthesize_youtube_video(video_id: str, tracker: TokenTracker, label: str, c
 
     t0 = time.time()
     response = client.models.generate_content(
-        model="gemini-2.5-flash",
+        model=GEMINI_MODEL,
         contents=[
             gtypes.Content(
                 role="user",
@@ -312,6 +322,19 @@ def synthesize_youtube_video(video_id: str, tracker: TokenTracker, label: str, c
         return {"title": f"Video {video_id}", "summary": raw[:500], "url": url, "significance": "medium"}
 
 
+_GEMINI_CONFIG_ERRORS = (
+    ("API_KEY_INVALID", "GOOGLE_API_KEY is not valid"),
+    ("PERMISSION_DENIED", "the key lacks access to the Gemini API"),
+    ("no longer available", f"model {GEMINI_MODEL} has been retired"),
+    ("RESOURCE_EXHAUSTED", "quota exhausted"),
+)
+
+
+def _gemini_config_error(err: str) -> str | None:
+    """Account/model-level faults that will fail identically for every video, not just this one."""
+    return next((reason for marker, reason in _GEMINI_CONFIG_ERRORS if marker in err), None)
+
+
 def fetch_youtube_source(source: dict, tracker: TokenTracker, client: genai.Client | None = None, seen: dict | None = None) -> list[dict]:
     cached = load_cache(source["id"])
     if cached is not None:
@@ -331,6 +354,7 @@ def fetch_youtube_source(source: dict, tracker: TokenTracker, client: genai.Clie
     logger.debug("    %d videos in channel feed", len(feed.entries))
     max_videos = YOUTUBE_VIDEOS_BY_WEIGHT.get(source["weight"], 2)
     items = []
+    attempted = 0
     t0 = time.time()
     for entry in feed.entries[:max_videos * 3]:
         pub = entry.get("published")
@@ -353,15 +377,30 @@ def fetch_youtube_source(source: dict, tracker: TokenTracker, client: genai.Clie
                 items.append(result)
         except Exception as e:
             err = str(e)
+            fatal = _gemini_config_error(err)
+            if fatal:
+                logger.error(
+                    "  [abort] %s — Gemini is misconfigured (%s); every YouTube source will "
+                    "return 0 items until this is fixed. %s", source["name"], fatal, err[:200]
+                )
+                return []
             if "400" in err and "INVALID_ARGUMENT" in err:
                 logger.debug("    skip %s: non-retryable Gemini error (%s)", video_id, err[:120])
             else:
                 logger.warning("    skip %s: Gemini error %s", video_id, err[:200])
+        attempted += 1
         if len(items) >= max_videos:
             break
 
+    if attempted and not items:
+        logger.warning(
+            "  [empty] %s — %d recent video(s) attempted, none synthesised", source["name"], attempted
+        )
     logger.debug("  %s: %d videos synthesised in %.1fs", source["name"], len(items), time.time() - t0)
-    save_cache(source["id"], items)
+    # Never cache an empty result: a single transient Gemini failure would otherwise
+    # keep the source at 0 items for the whole cache lifetime.
+    if items:
+        save_cache(source["id"], items)
     return items
 
 
