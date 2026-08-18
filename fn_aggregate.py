@@ -16,7 +16,7 @@ from pipeline import build_user_prompt
 from relevance import filter_offtopic
 from tools import mark_items_seen
 from rag import build_rag_context_block, index_brief
-from synthesis import call_bedrock, resolve_source_urls, synthesize_with_retry
+from synthesis import call_llm, provider_name, resolve_source_urls, synthesize_with_retry
 
 
 def _log(obj: dict) -> None:
@@ -70,9 +70,9 @@ def _upload_rag_db(bucket: str, prefix: str) -> None:
 def _synthesize(pre_fetched: list, threads: list, date: str, rag_context: str = "") -> dict:
     user_content = build_user_prompt(date, pre_fetched, threads, rag_context=rag_context)
     t0 = time.time()
-    brief = synthesize_with_retry(lambda: call_bedrock(user_content), pre_fetched)
-    _log({"event": "bedrock_response_received", "duration_ms": int((time.time() - t0) * 1000)})
-    brief["meta"]["synthesis_provider"] = "bedrock"
+    brief = synthesize_with_retry(lambda: call_llm(user_content), pre_fetched)
+    _log({"event": "llm_response_received", "duration_ms": int((time.time() - t0) * 1000)})
+    brief["meta"]["synthesis_provider"] = provider_name()
     return brief
 
 

@@ -27,7 +27,7 @@ from tools import fetch_all_sources, load_threads, save_output, load_cache, \
     load_seen_items, save_seen_items, filter_seen_items, mark_items_seen
 from pipeline import build_user_prompt
 from relevance import filter_offtopic
-from synthesis import call_bedrock, resolve_source_urls, synthesize_with_retry
+from synthesis import call_llm, provider_name, resolve_source_urls, synthesize_with_retry
 try:
     from rag import index_brief, build_rag_context_block, RAG_DB
     _RAG_AVAILABLE = True
@@ -168,8 +168,8 @@ def main():
 
     user_content = build_user_prompt(date, pre_fetched, threads, rag_context=rag_context)
     log.debug("Prompt size: %d chars", len(user_content))
-    brief = synthesize_with_retry(lambda: call_bedrock(user_content), pre_fetched)
-    brief["meta"]["synthesis_provider"] = "bedrock"
+    brief = synthesize_with_retry(lambda: call_llm(user_content), pre_fetched)
+    brief["meta"]["synthesis_provider"] = provider_name()
 
     deep_count   = len(brief.get("deep_takes", []))
     bullet_count = len(brief.get("bullets", []))

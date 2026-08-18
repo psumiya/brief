@@ -1,10 +1,10 @@
 """Off-topic relevance gate.
 
 Some sources occasionally publish items unrelated to the brief's topic. For sources
-flagged ``filter_offtopic: True`` this module runs one cheap Bedrock Haiku call per
-source to identify clearly off-topic items and drop them before synthesis. Mirrors
-``synthesis.py``: topic text is read from the profile dir and the Bedrock plumbing
-matches ``synthesis.call_bedrock``.
+flagged ``filter_offtopic: True`` this module runs one cheap Haiku call per source to
+identify clearly off-topic items and drop them before synthesis. Mirrors
+``synthesis.py``: topic text is read from the profile dir and the provider is
+resolved through the same ``llm`` adapter layer.
 
 Fail-open by design — any LLM or parse error keeps all items.
 """
@@ -12,9 +12,7 @@ Fail-open by design — any LLM or parse error keeps all items.
 import logging
 from pathlib import Path
 
-import boto3
-
-from synthesis import BEDROCK_MODEL_ID, _loads_lenient
+from synthesis import _loads_lenient, _resolve_adapter
 
 RELEVANCE_TOPIC = (
     Path(__file__).parent / "profiles" / "ai_news" / "prompts" / "relevance.txt"
@@ -24,6 +22,9 @@ log = logging.getLogger(__name__)
 
 # Per-item snippet length fed to the classifier — enough to judge topicality cheaply.
 _SNIPPET_CHARS = 240
+
+# The reply is just a JSON array of indices, so this stays small on purpose.
+_MAX_TOKENS = 256
 
 _SYSTEM_PROMPT = (
     "You are a strict relevance classifier for a curated brief. "
@@ -56,13 +57,9 @@ def _classify_offtopic(items: list[dict]) -> list[int]:
         f"CANDIDATE ITEMS:\n{listing}\n\n"
         "Return the JSON array of indices to drop."
     )
-    response = boto3.client("bedrock-runtime").converse(
-        modelId=BEDROCK_MODEL_ID,
-        system=[{"text": _SYSTEM_PROMPT}],
-        messages=[{"role": "user", "content": [{"text": user}]}],
-        inferenceConfig={"maxTokens": 256, "temperature": 0},
-    )
-    raw = response["output"]["message"]["content"][0]["text"].strip()
+    raw = _resolve_adapter().complete(
+        _SYSTEM_PROMPT, user, max_tokens=_MAX_TOKENS, temperature=0
+    ).strip()
     parsed = _loads_lenient(raw) if raw.lstrip().startswith("{") else _loads_array(raw)
     indices = [int(i) for i in parsed if isinstance(i, (int, float)) and 0 <= int(i) < len(items)]
     return sorted(set(indices))

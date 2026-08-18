@@ -25,6 +25,31 @@ Parameters:
     Type: String
     NoEcho: true
     Description: "Google Gemini API key (GOOGLE_API_KEY)"
+  LlmProvider:
+    Type: String
+    AllowedValues: [bedrock, anthropic, gemini]
+    Default: bedrock
+    Description: "Synthesis provider. bedrock is the historical default; anthropic uses the Claude API via workload identity federation"
+  # Federation identifiers are not credentials — minting a token additionally requires an
+  # AWS-signed JWT whose sub is the exact IAM role in the rule's subject_prefix. They are
+  # still kept out of this public repo (supplied from SSM by deploy.sh): Anthropic treats
+  # rule IDs as enumeration-sensitive, and publishing org topology has no upside.
+  AnthropicFederationRuleId:
+    Type: String
+    Default: ""
+    Description: "Anthropic federation rule ID (fdrl_...) — required when LlmProvider=anthropic"
+  AnthropicOrganizationId:
+    Type: String
+    Default: ""
+    Description: "Anthropic organization UUID — required when LlmProvider=anthropic"
+  AnthropicServiceAccountId:
+    Type: String
+    Default: ""
+    Description: "Anthropic service account ID (svac_...) — required when LlmProvider=anthropic"
+  AnthropicWorkspaceId:
+    Type: String
+    Default: ""
+    Description: "Anthropic workspace ID (wrkspc_...) — only needed when the federation rule spans several workspaces"
   ScheduleExpression:
     Type: String
     Default: "cron(0 5 * * ? *)"
@@ -46,6 +71,13 @@ Globals:
         GOOGLE_API_KEY: !Ref GoogleApiKey
         CLOUDFRONT_DIST_ID: !Ref CloudFrontDistId
         FORCE_REFRESH: "1"
+        LLM_PROVIDER: !Ref LlmProvider
+        # Deliberately no ANTHROPIC_API_KEY: it outranks federation in the SDK's
+        # credential precedence and would silently shadow it.
+        ANTHROPIC_FEDERATION_RULE_ID: !Ref AnthropicFederationRuleId
+        ANTHROPIC_ORGANIZATION_ID: !Ref AnthropicOrganizationId
+        ANTHROPIC_SERVICE_ACCOUNT_ID: !Ref AnthropicServiceAccountId
+        ANTHROPIC_WORKSPACE_ID: !Ref AnthropicWorkspaceId
 
 Resources:
 
@@ -120,6 +152,12 @@ Resources:
                 - bedrock:InvokeModelWithResponseStream
                 - aws-marketplace:ViewSubscriptions
                 - aws-marketplace:Subscribe
+              Resource: "*"
+            # Mints the AWS-signed OIDC token the Anthropic SDK exchanges for a
+            # short-lived access token. Kept alongside the Bedrock actions so
+            # switching LlmProvider needs no policy change in either direction.
+            - Effect: Allow
+              Action: sts:GetWebIdentityToken
               Resource: "*"
 
   # ── Step Functions state machine ─────────────────────────────────────────────
