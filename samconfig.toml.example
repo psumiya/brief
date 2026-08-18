@@ -1,17 +1,38 @@
 version = 0.1
 
-# Copy this file to samconfig.toml and fill in your own infrastructure values.
+# Copy this file to samconfig.toml and change `region` (and stack_name if you prefer).
 # samconfig.toml is gitignored so your personal config never gets committed.
 #
-# What to change:
-#   - S3Bucket         → the bucket that hosts your published site
-#   - region           → your AWS region (and stack_name if you prefer)
-#   - CloudFrontDistId  → prod only; your distribution id (dev uses NONE to skip
-#                         invalidation)
+# Deploy with ./deploy.sh dev  or  ./deploy.sh prod — not bare `sam deploy`.
+#
+# There are deliberately no parameter_overrides here. `sam deploy
+# --parameter-overrides` REPLACES this file's list rather than merging with it, so
+# splitting the parameters across both places would mean every deploy silently
+# dropped half of them. deploy.sh owns the complete set and reads every
+# environment-specific value from SSM. Create these before your first deploy:
+#
+#   aws ssm put-parameter --name /brief/S3_BUCKET --type String \
+#       --value 'your-bucket-name'
+#   aws ssm put-parameter --name /brief/GOOGLE_API_KEY --type SecureString \
+#       --value 'your-gemini-key'
+#   aws ssm put-parameter --name /brief/prod/CLOUDFRONT_DIST_ID --type String \
+#       --value 'EXXXXXXXXXXXX'          # prod only; dev skips invalidation
+#
+# Only if LlmProvider=anthropic (Claude API via workload identity federation —
+# see README). Values come from Claude Console → Settings → Workload identity:
+#
+#   aws ssm put-parameter --name /brief/ANTHROPIC_ORGANIZATION_ID --type String \
+#       --value '00000000-0000-0000-0000-000000000000'
+#   aws ssm put-parameter --name /brief/ANTHROPIC_SERVICE_ACCOUNT_ID --type String \
+#       --value 'svac_...'
+#   aws ssm put-parameter --name /brief/ANTHROPIC_WORKSPACE_ID --type String \
+#       --value 'wrkspc_...'
+#   aws ssm put-parameter --name /brief/dev/ANTHROPIC_FEDERATION_RULE_ID  --type String --value 'fdrl_...'
+#   aws ssm put-parameter --name /brief/prod/ANTHROPIC_FEDERATION_RULE_ID --type String --value 'fdrl_...'
 
 # ── Dev (default) ─────────────────────────────────────────────────────────────
 # Deploys to brief-dev/ S3 prefix. EventBridge rule is DISABLED.
-# Validate with: sam deploy && aws lambda invoke --function-name brief-orchestrator-dev ...
+# Validate with: ./deploy.sh dev && aws lambda invoke --function-name brief-orchestrator-dev ...
 
 [default.global.parameters]
 stack_name    = "brief-dev"
@@ -23,16 +44,6 @@ s3_prefix     = "brief-sam-builds"
 [default.deploy.parameters]
 confirm_changeset = false
 fail_on_empty_changeset = false
-# GoogleApiKey must be passed at deploy time:
-#   sam deploy --parameter-overrides GoogleApiKey=<key>
-# or set SSM parameter /brief/GOOGLE_API_KEY and run:
-#   sam deploy --parameter-overrides "GoogleApiKey=$(aws ssm get-parameter --name /brief/GOOGLE_API_KEY --with-decryption --query Parameter.Value --output text)"
-parameter_overrides = [
-    "Stage=dev",
-    "S3Bucket=your-bucket-name",
-    "CloudFrontDistId=NONE",
-    "ScheduleExpression=\"cron(0 5 * * ? *)\"",
-]
 
 # ── Prod ──────────────────────────────────────────────────────────────────────
 # Deploys to brief/ S3 prefix (the live site). EventBridge rule ENABLED.
@@ -48,14 +59,3 @@ s3_prefix     = "brief-sam-builds"
 [prod.deploy.parameters]
 confirm_changeset = false
 fail_on_empty_changeset = false
-# GoogleApiKey must be passed at deploy time:
-#   sam deploy --config-env prod --parameter-overrides "Stage=prod S3Bucket=your-bucket-name CloudFrontDistId=EXXXXXXXXXXXX GoogleApiKey=$(aws ssm get-parameter --name /brief/GOOGLE_API_KEY --with-decryption --query Parameter.Value --output text)"
-# ScheduleExpression is pinned here (not left to the template default) so every
-# deploy overwrites any stale value stored on the stack. EventBridge cron is
-# UTC-only with no DST handling: cron(0 5) = 9pm PST (winter) / 10pm PDT (summer).
-parameter_overrides = [
-    "Stage=prod",
-    "S3Bucket=your-bucket-name",
-    "CloudFrontDistId=EXXXXXXXXXXXX",
-    "ScheduleExpression=\"cron(0 5 * * ? *)\"",
-]

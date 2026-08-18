@@ -17,6 +17,7 @@ venv/
 .pytest_cache/
 .claude/settings.local.json
 .claude/CLAUDE.local.md
+.claude/scheduled_tasks.lock
 
 # SAM build output and lambda-invoke scratch files
 .aws-sam/

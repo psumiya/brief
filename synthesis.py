@@ -1,4 +1,9 @@
-"""Shared Bedrock synthesis helpers used by both main.py and fn_aggregate.py."""
+"""Shared synthesis helpers used by both main.py and fn_aggregate.py.
+
+The provider is resolved through ``llm.get_adapter`` so the same code path runs on
+Bedrock, the Anthropic API, or Gemini depending on ``LLM_PROVIDER`` and which
+credentials are present.
+"""
 
 import json
 import logging
@@ -6,41 +11,33 @@ from datetime import datetime, timezone
 
 from pathlib import Path
 
-import boto3
+from llm import get_adapter
 
 SYSTEM_PROMPT = (
     Path(__file__).parent / "profiles" / "ai_news" / "prompts" / "system.txt"
 ).read_text(encoding="utf-8")
 
-BEDROCK_MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
-
 log = logging.getLogger(__name__)
 
+_adapter = None
 
-def call_bedrock(user_content: str) -> str:
-    log.info("Sending to Bedrock (%s)…", BEDROCK_MODEL_ID)
-    response = boto3.client("bedrock-runtime").converse_stream(
-        modelId=BEDROCK_MODEL_ID,
-        system=[{"text": SYSTEM_PROMPT}],
-        messages=[{"role": "user", "content": [{"text": user_content}]}],
-        inferenceConfig={"maxTokens": 16384},
-    )
-    chunks = []
-    for event in response["stream"]:
-        if "contentBlockDelta" in event:
-            chunks.append(event["contentBlockDelta"]["delta"].get("text", ""))
-        elif "messageStop" in event:
-            stop_reason = event["messageStop"].get("stopReason")
-            if stop_reason == "max_tokens":
-                log.warning("Bedrock output truncated at maxTokens — JSON will be incomplete")
-        elif "metadata" in event:
-            usage = event["metadata"].get("usage", {})
-            log.debug(
-                "Bedrock response: in=%s out=%s tokens",
-                usage.get("inputTokens", "?"),
-                usage.get("outputTokens", "?"),
-            )
-    return "".join(chunks).strip()
+
+def _resolve_adapter():
+    """Build the adapter once per process. Keeps Lambda warm starts from rebuilding
+    the client (and, under federation, re-minting an identity token) on every call."""
+    global _adapter
+    if _adapter is None:
+        _adapter = get_adapter()
+    return _adapter
+
+
+def provider_name() -> str:
+    """Short provider label for brief metadata, e.g. ``"anthropic"``."""
+    return type(_resolve_adapter()).__name__.replace("Adapter", "").lower()
+
+
+def call_llm(user_content: str) -> str:
+    return _resolve_adapter().complete(SYSTEM_PROMPT, user_content)
 
 
 def _loads_lenient(raw: str) -> dict:
@@ -64,8 +61,8 @@ def _loads_lenient(raw: str) -> dict:
 
 def synthesize_with_retry(generate, pre_fetched: list, attempts: int = 3) -> dict:
     """Call generate() (returns raw LLM text) and parse it, retrying on malformed
-    JSON. Bedrock/Claude run at default temperature, so a fresh generation almost
-    always fixes a one-off bad escape."""
+    JSON. Synthesis runs at the provider's default temperature, so a fresh
+    generation almost always fixes a one-off bad escape."""
     last_err: json.JSONDecodeError | None = None
     for i in range(attempts):
         try:
