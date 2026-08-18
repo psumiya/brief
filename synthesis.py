@@ -79,9 +79,10 @@ def parse_brief(raw: str, pre_fetched: list) -> dict:
     brief.setdefault("narrative_threads", [])
     brief.setdefault("discovery_calls", [])
     brief.setdefault("meta", {})
-    brief["meta"].setdefault("sources_fetched", [s["name"] for s in pre_fetched if s.get("items")])
-    brief["meta"].setdefault("sources_failed", [s["name"] for s in pre_fetched if not s.get("items")])
-    brief["meta"].setdefault("total_items_ingested", sum(len(s.get("items", [])) for s in pre_fetched))
+    # Provenance is ground truth from the fetch stage — overwrite whatever the model claimed.
+    brief["meta"]["sources_fetched"] = [s["name"] for s in pre_fetched if s.get("items")]
+    brief["meta"]["sources_failed"] = [s["name"] for s in pre_fetched if not s.get("items")]
+    brief["meta"]["total_items_ingested"] = sum(len(s.get("items", [])) for s in pre_fetched)
     brief["meta"].setdefault("discovery_budget_used", 0)
     return brief
 

@@ -85,3 +85,25 @@ def test_parse_brief_fills_meta_from_prefetched():
     assert "Source A" in brief["meta"]["sources_fetched"]
     assert "Source B" in brief["meta"]["sources_failed"]
     assert brief["meta"]["total_items_ingested"] == 1
+
+
+def test_parse_brief_meta_overrides_model_claims():
+    from synthesis import parse_brief
+    raw = json.dumps({
+        "date": "2026-05-17",
+        "deep_takes": [],
+        "bullets": [],
+        "meta": {
+            "sources_fetched": ["Hallucinated Source"],
+            "sources_failed": [],
+            "total_items_ingested": 99,
+        },
+    })
+    pre_fetched = [
+        {"name": "Source A", "type": "rss", "weight": 5, "items": [{"title": "x"}]},
+        {"name": "Source B", "type": "rss", "weight": 3, "items": []},
+    ]
+    brief = parse_brief(raw, pre_fetched)
+    assert brief["meta"]["sources_fetched"] == ["Source A"]
+    assert brief["meta"]["sources_failed"] == ["Source B"]
+    assert brief["meta"]["total_items_ingested"] == 1
