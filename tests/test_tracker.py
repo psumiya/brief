@@ -2,7 +2,7 @@ import io
 import sys
 from unittest.mock import MagicMock
 
-from tracker import CallRecord, TokenTracker, PRICING
+from tracker import CallRecord, TokenTracker, PRICING, GEMINI_MODEL
 
 
 def test_call_record_cost_known_model():
@@ -15,6 +15,11 @@ def test_call_record_cost_known_model():
 def test_call_record_cost_zero_tokens():
     r = CallRecord(label="x", model="gemini-2.5-flash", input_tokens=0, output_tokens=0)
     assert r.cost_usd == 0.0
+
+
+def test_active_gemini_model_is_priced():
+    # An unpriced model silently reports $0.00 for every call.
+    assert GEMINI_MODEL in PRICING
 
 
 def test_call_record_cost_unknown_model():
@@ -38,7 +43,7 @@ def test_token_tracker_track_gemini():
     assert len(t._calls) == 1
     assert t._calls[0].input_tokens == 500
     assert t._calls[0].output_tokens == 100
-    assert t._calls[0].model == "gemini-2.5-flash"
+    assert t._calls[0].model == GEMINI_MODEL
 
 
 def test_token_tracker_track_gemini_missing_attrs():

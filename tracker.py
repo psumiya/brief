@@ -2,8 +2,13 @@ import threading
 from dataclasses import dataclass
 
 
+# gemini-2.5-flash was retired mid-2026: models.list still returns it, but
+# generateContent 404s with a pointer to gemini-3.6-flash.
+GEMINI_MODEL = "gemini-3.6-flash"
+
 # Pricing per 1M tokens (USD) as of 2026
 PRICING = {
+    "gemini-3.6-flash": {"input": 0.75, "output": 3.75},  # promotional through 2026-12-31, then 1.50/7.50
     "gemini-2.5-flash": {"input": 0.10, "output": 0.40},
     "claude-sonnet-4-6": {"input": 3.00, "output": 15.00},
 }
@@ -32,7 +37,7 @@ class TokenTracker:
         u = response.usage_metadata
         record = CallRecord(
             label=label,
-            model="gemini-2.5-flash",
+            model=GEMINI_MODEL,
             input_tokens=getattr(u, "prompt_token_count", 0),
             output_tokens=getattr(u, "candidates_token_count", 0),
         )

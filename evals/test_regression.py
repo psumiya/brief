@@ -4,6 +4,7 @@ import json
 import os
 import pytest
 from evals.schema import VALID_THEMES
+from tracker import GEMINI_MODEL
 
 
 # ── Category 5: Regression snapshot (no API) ──────────────────────────────────
@@ -82,7 +83,7 @@ def test_deep_takes_pass_llm_judge(golden_brief):
             sources=_json.dumps(dt.get("sources", [])),
         )
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model=GEMINI_MODEL,
             contents=prompt,
         )
         raw = response.text.strip()

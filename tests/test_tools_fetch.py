@@ -25,6 +25,26 @@ def test_is_recent_old_date():
     assert _is_recent(old) is False
 
 
+def test_is_recent_iso8601_recent_date():
+    from tools import _is_recent
+    # YouTube's Atom feed dates in ISO 8601, not RFC 2822. Parsing only the latter
+    # made every video look old and silently emptied all YouTube sources.
+    yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+    assert _is_recent(yesterday) is True
+
+
+def test_is_recent_iso8601_old_date():
+    from tools import _is_recent
+    old = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    assert _is_recent(old) is False
+
+
+def test_is_recent_iso8601_zulu_suffix():
+    from tools import _is_recent
+    yesterday = (datetime.now(timezone.utc) - timedelta(days=1))
+    assert _is_recent(yesterday.strftime("%Y-%m-%dT%H:%M:%SZ")) is True
+
+
 def test_is_recent_malformed_string():
     from tools import _is_recent
     # Unparseable dates fail closed — an item we can't date-check is not trusted as recent.
